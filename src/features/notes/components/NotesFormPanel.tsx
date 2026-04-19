@@ -5,6 +5,11 @@ type NotesFormPanelProps = {
   mode: "create" | "edit";
   draft: NoteDraft;
   errors: NoteDraftErrors;
+  isSubmitting: boolean;
+  status: {
+    variant: "success" | "error";
+    message: string;
+  } | null;
   onFieldChange: (field: keyof NoteDraft, value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onReset: () => void;
@@ -14,6 +19,8 @@ export default function NotesFormPanel({
   mode,
   draft,
   errors,
+  isSubmitting,
+  status,
   onFieldChange,
   onSubmit,
   onReset,
@@ -24,8 +31,18 @@ export default function NotesFormPanel({
         {mode === "edit" ? "Edit Catatan" : "Tambah Catatan"}
       </h2>
       <p className={styles.cardSubcopy}>
-        Mode UI-only. Data yang Anda ubah hanya tersimpan pada state lokal browser.
+        Form ini terhubung ke backend API notes menggunakan token login aktif.
       </p>
+
+      {status ? (
+        <p
+          className={`${styles.statusInfo} ${
+            status.variant === "success" ? styles.statusSuccess : styles.statusError
+          }`}
+        >
+          {status.message}
+        </p>
+      ) : null}
 
       <form className={styles.form} onSubmit={onSubmit} noValidate>
         <div className={styles.field}>
@@ -36,6 +53,7 @@ export default function NotesFormPanel({
             value={draft.title}
             onChange={(event) => onFieldChange("title", event.target.value)}
             placeholder="Contoh: Rencana meeting"
+            disabled={isSubmitting}
           />
           <span className={styles.errorText}>{errors.title || ""}</span>
         </div>
@@ -47,6 +65,7 @@ export default function NotesFormPanel({
             value={draft.content}
             onChange={(event) => onFieldChange("content", event.target.value)}
             placeholder="Tulis isi catatan..."
+            disabled={isSubmitting}
           />
           <span className={styles.errorText}>{errors.content || ""}</span>
         </div>
@@ -58,15 +77,25 @@ export default function NotesFormPanel({
             type="date"
             value={draft.noteDate}
             onChange={(event) => onFieldChange("noteDate", event.target.value)}
+            disabled={isSubmitting}
           />
           <span className={styles.errorText}>{errors.noteDate || ""}</span>
         </div>
 
         <div className={styles.formActions}>
-          <button type="submit" className={styles.primaryButton}>
-            {mode === "edit" ? "Simpan Perubahan" : "Tambah Catatan"}
+          <button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+            {isSubmitting
+              ? "Memproses..."
+              : mode === "edit"
+                ? "Simpan Perubahan"
+                : "Tambah Catatan"}
           </button>
-          <button type="button" className={styles.ghostButton} onClick={onReset}>
+          <button
+            type="button"
+            className={styles.ghostButton}
+            onClick={onReset}
+            disabled={isSubmitting}
+          >
             Reset Form
           </button>
         </div>

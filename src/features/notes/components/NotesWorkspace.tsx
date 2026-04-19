@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   clearAuthSession,
   readAuthToken,
   readAuthUser,
 } from "@/features/auth/lib/authSession";
+import {
+  createNoteWithApi,
+  deleteNoteWithApi,
+  fetchNotesWithApi,
+  updateNoteWithApi,
+} from "../lib/notesApi";
 import { validateNoteDraft } from "../lib/noteValidators";
-import { MOCK_NOTES } from "../lib/mockNotes";
 import type { NoteDraft, NoteDraftErrors, NoteUiItem } from "../lib/notesTypes";
 import NotesFormPanel from "./NotesFormPanel";
 import NotesListPanel from "./NotesListPanel";
@@ -19,6 +24,13 @@ const EMPTY_DRAFT: NoteDraft = {
   title: "",
   content: "",
   noteDate: "",
+};
+
+const PAGE_LIMIT = 5;
+
+type FormStatus = {
+  variant: "success" | "error";
+  message: string;
 };
 
 function buildNoteDraft(note: NoteUiItem): NoteDraft {
@@ -31,34 +43,68 @@ function buildNoteDraft(note: NoteUiItem): NoteDraft {
 
 export default function NotesWorkspace() {
   const router = useRouter();
-  const [notes, setNotes] = useState<NoteUiItem[]>(MOCK_NOTES);
+  const token = readAuthToken();
+  const user = readAuthUser();
+
+  const [notes, setNotes] = useState<NoteUiItem[]>([]);
   const [filterDate, setFilterDate] = useState("");
   const [draft, setDraft] = useState<NoteDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<NoteDraftErrors>({});
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
+  const [status, setStatus] = useState<FormStatus | null>(null);
 
-  const user = readAuthUser();
+  const loadNotes = useCallback(
+    async (targetPage: number, targetDate: string, keepStatus: boolean) => {
+      if (!token) {
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const result = await fetchNotesWithApi({
+          token,
+          page: targetPage,
+          limit: PAGE_LIMIT,
+          ...(targetDate ? { date: targetDate } : {}),
+        });
+
+        setNotes(result.items);
+        setTotalItems(result.pagination.total);
+        setTotalPages(result.pagination.totalPages);
+
+        if (!keepStatus) {
+          setStatus(null);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Gagal memuat data catatan";
+
+        setStatus({
+          variant: "error",
+          message,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
-    const token = readAuthToken();
-
     if (!token) {
       router.replace("/login");
-    }
-  }, [router]);
-
-  const filteredNotes = useMemo(() => {
-    const sortedNotes = [...notes].sort((a, b) =>
-      a.noteDate < b.noteDate ? 1 : a.noteDate > b.noteDate ? -1 : 0
-    );
-
-    if (!filterDate) {
-      return sortedNotes;
+      return;
     }
 
-    return sortedNotes.filter((note) => note.noteDate === filterDate);
-  }, [notes, filterDate]);
+    void loadNotes(page, filterDate, false);
+  }, [token, router, page, filterDate, loadNotes]);
 
   function onLogout() {
     clearAuthSession();
@@ -68,6 +114,7 @@ export default function NotesWorkspace() {
   function onFieldChange(field: keyof NoteDraft, value: string) {
     setDraft((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+    setStatus(null);
   }
 
   function onResetForm() {
@@ -82,17 +129,52 @@ export default function NotesWorkspace() {
     setEditingId(note.id);
     setDraft(buildNoteDraft(note));
     setErrors({});
+    setStatus(null);
   }
 
-  function onDelete(noteId: number) {
-    setNotes((prev) => prev.filter((item) => item.id !== noteId));
+  async function onDelete(noteId: number) {
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
 
-    if (editingId === noteId) {
-      onResetForm();
+    setDeletingNoteId(noteId);
+
+    try {
+      await deleteNoteWithApi({
+        token,
+        noteId,
+      });
+
+      if (editingId === noteId) {
+        onResetForm();
+      }
+
+      const nextPage = notes.length === 1 && page > 1 ? page - 1 : page;
+
+      if (nextPage !== page) {
+        setPage(nextPage);
+      }
+
+      await loadNotes(nextPage, filterDate, true);
+
+      setStatus({
+        variant: "success",
+        message: "Catatan berhasil dihapus",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menghapus catatan";
+
+      setStatus({
+        variant: "error",
+        message,
+      });
+    } finally {
+      setDeletingNoteId(null);
     }
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validateNoteDraft(draft);
@@ -102,37 +184,81 @@ export default function NotesWorkspace() {
       return;
     }
 
-    if (mode === "edit" && editingId) {
-      setNotes((prev) =>
-        prev.map((item) =>
-          item.id === editingId
-            ? {
-                ...item,
-                ...draft,
-                updatedAt: new Date().toISOString(),
-              }
-            : item
-        )
-      );
-
-      onResetForm();
+    if (!token) {
+      router.replace("/login");
       return;
     }
 
-    const nowIso = new Date().toISOString();
+    setIsSubmitting(true);
 
-    setNotes((prev) => [
-      {
-        id: Date.now(),
-        ...draft,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      },
-      ...prev,
-    ]);
+    try {
+      if (mode === "edit" && editingId) {
+        await updateNoteWithApi({
+          token,
+          noteId: editingId,
+          draft,
+        });
 
-    onResetForm();
+        await loadNotes(page, filterDate, true);
+
+        setStatus({
+          variant: "success",
+          message: "Catatan berhasil diperbarui",
+        });
+
+        onResetForm();
+        return;
+      }
+
+      await createNoteWithApi({
+        token,
+        draft,
+      });
+
+      const targetPage = 1;
+
+      if (page !== targetPage) {
+        setPage(targetPage);
+      }
+
+      await loadNotes(targetPage, filterDate, true);
+
+      setStatus({
+        variant: "success",
+        message: "Catatan berhasil ditambahkan",
+      });
+
+      onResetForm();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menyimpan catatan";
+
+      setStatus({
+        variant: "error",
+        message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
+
+  function onFilterDateChange(value: string) {
+    setFilterDate(value);
+    setPage(1);
+  }
+
+  function onResetFilter() {
+    setFilterDate("");
+    setPage(1);
+  }
+
+  function onPrevPage() {
+    setPage((prev) => (prev > 1 ? prev - 1 : prev));
+  }
+
+  function onNextPage() {
+    setPage((prev) => (prev < totalPages ? prev + 1 : prev));
+  }
+
 
   return (
     <main className={styles.notesPage}>
@@ -141,8 +267,8 @@ export default function NotesWorkspace() {
           <div>
             <h1 className={styles.topTitle}>Notes Workspace</h1>
             <p className={styles.topCopy}>
-              UI simulasi CRUD Notes: create, edit, delete, dan filter tanggal sudah aktif
-              di sisi klien.
+              Workspace ini sudah terhubung ke backend untuk alur CRUD notes, filter
+              tanggal, dan pagination data.
             </p>
             <span className={styles.topMeta}>
               Pengguna aktif: {user?.name || "-"} ({user?.email || "-"})
@@ -164,18 +290,28 @@ export default function NotesWorkspace() {
             mode={mode}
             draft={draft}
             errors={errors}
+            isSubmitting={isSubmitting}
+            status={status}
             onFieldChange={onFieldChange}
             onSubmit={onSubmit}
             onReset={onResetForm}
           />
 
           <NotesListPanel
-            notes={filteredNotes}
+            notes={notes}
             filterDate={filterDate}
-            onFilterDateChange={setFilterDate}
-            onResetFilter={() => setFilterDate("")}
+            onFilterDateChange={onFilterDateChange}
+            onResetFilter={onResetFilter}
             onEdit={onEdit}
             onDelete={onDelete}
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            isLoading={isLoading}
+            isMutating={isSubmitting || deletingNoteId !== null}
+            deletingNoteId={deletingNoteId}
+            onPrevPage={onPrevPage}
+            onNextPage={onNextPage}
           />
         </section>
       </section>

@@ -5,9 +5,17 @@ type NoteCardProps = {
   note: NoteUiItem;
   onEdit: (note: NoteUiItem) => void;
   onDelete: (noteId: number) => void;
+  isBusy: boolean;
+  isDeleting: boolean;
 };
 
-export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
+export default function NoteCard({
+  note,
+  onEdit,
+  onDelete,
+  isBusy,
+  isDeleting,
+}: NoteCardProps) {
   return (
     <article className={styles.noteCard}>
       <header className={styles.noteTitleRow}>
@@ -18,11 +26,21 @@ export default function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
       <p className={styles.noteContent}>{note.content}</p>
 
       <div className={styles.noteActions}>
-        <button type="button" className={styles.ghostButton} onClick={() => onEdit(note)}>
+        <button
+          type="button"
+          className={styles.ghostButton}
+          onClick={() => onEdit(note)}
+          disabled={isBusy}
+        >
           Edit
         </button>
-        <button type="button" className={styles.dangerButton} onClick={() => onDelete(note.id)}>
-          Hapus
+        <button
+          type="button"
+          className={styles.dangerButton}
+          onClick={() => onDelete(note.id)}
+          disabled={isBusy || isDeleting}
+        >
+          {isDeleting ? "Menghapus..." : "Hapus"}
         </button>
       </div>
     </article>
