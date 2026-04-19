@@ -4,20 +4,30 @@
 Menyediakan antarmuka Login dan Register untuk Notes App.
 
 ## Tahap Saat Ini
-Tahap ini adalah UI-only:
+Tahap ini sudah terintegrasi API:
 - Halaman Login tersedia di /login
 - Halaman Register tersedia di /register
 - Validasi form berjalan di sisi klien
-- Belum terhubung ke API backend
+- Login/Register memanggil API backend melalui Next Route Handler
+- Token dan data user disimpan di localStorage
+- Redirect ke halaman /notes setelah autentikasi berhasil
 
 ## Komponen
 - components/AuthFrame.tsx
 - components/LoginUiForm.tsx
 - components/RegisterUiForm.tsx
 - lib/authValidators.ts
+- lib/authApi.ts
+- lib/authSession.ts
 - styles/auth.module.css
 
-## Integrasi API
-Integrasi API akan ditambahkan pada tahap berikutnya dengan endpoint:
+## Endpoint Auth yang Digunakan
 - POST /api/auth/register
 - POST /api/auth/login
+
+## Konfigurasi Environment
+Tambahkan file .env.local di root frontend:
+
+```env
+BACKEND_API_URL=http://localhost:3000
+```

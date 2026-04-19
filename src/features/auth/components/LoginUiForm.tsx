@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { loginWithApi } from "../lib/authApi";
+import { saveAuthSession } from "../lib/authSession";
 import {
   validateLoginUi,
   type FieldErrors,
@@ -14,18 +17,25 @@ const initialState: LoginUiState = {
   password: "",
 };
 
+type FormStatus = {
+  variant: "success" | "error";
+  message: string;
+};
+
 export default function LoginUiForm() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginUiState>(initialState);
   const [errors, setErrors] = useState<FieldErrors<keyof LoginUiState>>({});
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<FormStatus | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function onChange(field: keyof LoginUiState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
-    setStatus("");
+    setStatus(null);
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validateLoginUi(form);
@@ -35,9 +45,30 @@ export default function LoginUiForm() {
       return;
     }
 
-    setStatus(
-      "UI login sudah siap. Tahap ini belum memanggil API backend, integrasi akan dilakukan pada commit berikutnya."
-    );
+    setIsSubmitting(true);
+
+    try {
+      const result = await loginWithApi({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+
+      saveAuthSession(result);
+      setStatus({
+        variant: "success",
+        message: "Login berhasil. Mengalihkan ke halaman notes.",
+      });
+      router.push("/notes");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login gagal";
+
+      setStatus({
+        variant: "error",
+        message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -75,10 +106,18 @@ export default function LoginUiForm() {
           <span className={styles.errorText}>{errors.password || ""}</span>
         </div>
 
-        {status ? <p className={styles.statusInfo}>{status}</p> : null}
+        {status ? (
+          <p
+            className={`${styles.statusInfo} ${
+              status.variant === "success" ? styles.statusSuccess : styles.statusError
+            }`}
+          >
+            {status.message}
+          </p>
+        ) : null}
 
-        <button type="submit" className={styles.primaryButton}>
-          Login (UI)
+        <button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+          {isSubmitting ? "Memproses..." : "Login"}
         </button>
       </form>
 

@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { registerWithApi } from "../lib/authApi";
+import { saveAuthSession } from "../lib/authSession";
 import {
   validateRegisterUi,
   type FieldErrors,
@@ -15,18 +18,25 @@ const initialState: RegisterUiState = {
   password: "",
 };
 
+type FormStatus = {
+  variant: "success" | "error";
+  message: string;
+};
+
 export default function RegisterUiForm() {
+  const router = useRouter();
   const [form, setForm] = useState<RegisterUiState>(initialState);
   const [errors, setErrors] = useState<FieldErrors<keyof RegisterUiState>>({});
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<FormStatus | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function onChange(field: keyof RegisterUiState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
-    setStatus("");
+    setStatus(null);
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validateRegisterUi(form);
@@ -36,9 +46,31 @@ export default function RegisterUiForm() {
       return;
     }
 
-    setStatus(
-      "UI register sudah siap. Tahap ini belum memanggil API backend, integrasi akan dilakukan pada commit berikutnya."
-    );
+    setIsSubmitting(true);
+
+    try {
+      const result = await registerWithApi({
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+
+      saveAuthSession(result);
+      setStatus({
+        variant: "success",
+        message: "Registrasi berhasil. Mengalihkan ke halaman notes.",
+      });
+      router.push("/notes");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Register gagal";
+
+      setStatus({
+        variant: "error",
+        message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -88,10 +120,18 @@ export default function RegisterUiForm() {
           <span className={styles.errorText}>{errors.password || ""}</span>
         </div>
 
-        {status ? <p className={styles.statusInfo}>{status}</p> : null}
+        {status ? (
+          <p
+            className={`${styles.statusInfo} ${
+              status.variant === "success" ? styles.statusSuccess : styles.statusError
+            }`}
+          >
+            {status.message}
+          </p>
+        ) : null}
 
-        <button type="submit" className={styles.primaryButton}>
-          Register (UI)
+        <button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
+          {isSubmitting ? "Memproses..." : "Register"}
         </button>
       </form>
 

@@ -1,0 +1,69 @@
+.notesPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(22, 167, 132, 0.15), transparent 30%),
+    radial-gradient(circle at 86% 10%, rgba(250, 133, 89, 0.15), transparent 35%),
+    #f4efe8;
+}
+
+.card {
+  width: min(780px, 100%);
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  box-shadow: 0 18px 40px rgba(30, 22, 16, 0.12);
+  padding: 1.5rem;
+}
+
+.heading {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: -0.02em;
+  color: #1f1815;
+}
+
+.subheading {
+  margin: 0.55rem 0 1.25rem;
+  color: rgba(31, 24, 21, 0.72);
+}
+
+.userBox {
+  border-radius: 14px;
+  padding: 0.95rem;
+  background: rgba(17, 121, 112, 0.1);
+  color: #0e625d;
+  line-height: 1.5;
+}
+
+.actions {
+  margin-top: 1.2rem;
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.linkButton,
+.logoutButton {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0.58rem 1rem;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  background: #0f766e;
+  color: #fff;
+}
+
+.logoutButton {
+  background: #f2e6e5;
+  color: #8e1f29;
+}
