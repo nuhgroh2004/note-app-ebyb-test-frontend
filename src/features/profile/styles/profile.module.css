@@ -1,0 +1,192 @@
+.profilePage {
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(23, 154, 132, 0.16), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(238, 121, 63, 0.16), transparent 34%),
+    #f5f0e8;
+}
+
+.shell {
+  width: min(1140px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.topCard,
+.panel {
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid rgba(21, 21, 21, 0.08);
+  box-shadow: 0 18px 40px rgba(27, 21, 15, 0.09);
+  padding: 1.2rem;
+}
+
+.topCard {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  letter-spacing: -0.03em;
+  color: #221b17;
+}
+
+.pageCopy {
+  margin: 0.45rem 0 0;
+  color: rgba(34, 27, 23, 0.72);
+  line-height: 1.5;
+}
+
+.modeTag {
+  margin-top: 0.72rem;
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.3rem 0.68rem;
+  background: rgba(12, 114, 106, 0.12);
+  color: #0f645d;
+  font-size: 0.8rem;
+}
+
+.topActions {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.ghostButton,
+.dangerButton {
+  min-height: 41px;
+  border-radius: 10px;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0.88rem;
+}
+
+.primaryButton {
+  color: #fff;
+  background: linear-gradient(130deg, #0d726b, #10a09b);
+}
+
+.ghostButton {
+  color: #0d726b;
+  background: rgba(13, 114, 107, 0.12);
+}
+
+.dangerButton {
+  color: #8d1f2b;
+  background: rgba(165, 40, 54, 0.12);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: #211a16;
+}
+
+.sectionCopy {
+  margin: 0.4rem 0 1rem;
+  color: rgba(33, 26, 22, 0.68);
+  font-size: 0.9rem;
+}
+
+.profileMeta {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.metaRow {
+  border-radius: 12px;
+  background: #faf8f3;
+  border: 1px solid rgba(20, 20, 20, 0.06);
+  padding: 0.66rem 0.72rem;
+}
+
+.metaLabel {
+  font-size: 0.75rem;
+  color: rgba(33, 26, 22, 0.62);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metaValue {
+  margin-top: 0.2rem;
+  color: #231c18;
+  font-weight: 600;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.statCard {
+  border-radius: 12px;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  background: #faf8f3;
+  padding: 0.74rem;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: rgba(33, 26, 22, 0.68);
+}
+
+.statValue {
+  margin-top: 0.2rem;
+  font-size: 1.45rem;
+  color: #1f1815;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.upcomingList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.upcomingItem {
+  border-radius: 12px;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  background: #faf8f3;
+  padding: 0.72rem;
+}
+
+.upcomingTitle {
+  margin: 0;
+  color: #231c18;
+  font-size: 0.96rem;
+}
+
+.upcomingDate {
+  margin-top: 0.3rem;
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.22rem 0.52rem;
+  background: rgba(13, 114, 107, 0.13);
+  color: #0e675f;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

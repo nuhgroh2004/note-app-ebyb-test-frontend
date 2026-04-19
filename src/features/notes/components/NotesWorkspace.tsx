@@ -276,6 +276,9 @@ export default function NotesWorkspace() {
           </div>
 
           <div className={styles.topActions}>
+            <Link href="/profile" className={styles.primaryButton}>
+              Profile
+            </Link>
             <Link href="/" className={styles.ghostButton}>
               Landing
             </Link>
