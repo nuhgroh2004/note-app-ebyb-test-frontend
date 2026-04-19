@@ -17,8 +17,8 @@ export default function TopNav() {
           <a href="#services">API</a>
           <a href="#faq">FAQ</a>
         </div>
-        <a className="waitlist-btn desktop-only" href="#footer-cta">
-          Mulai Sekarang
+        <a className="waitlist-btn desktop-only" href="/login">
+          Login
         </a>
         <button
           type="button"
@@ -49,8 +49,8 @@ export default function TopNav() {
             <a href="#faq" onClick={() => setMobileMenuOpen(false)}>
               FAQ
             </a>
-            <a href="#footer-cta" onClick={() => setMobileMenuOpen(false)}>
-              Mulai Sekarang
+            <a href="/login" onClick={() => setMobileMenuOpen(false)}>
+              Login
             </a>
           </motion.div>
         ) : null}

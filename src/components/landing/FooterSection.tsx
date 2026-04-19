@@ -14,7 +14,7 @@ export default function FooterSection() {
               profile dashboard.
             </p>
             <a href="#hero" className="waitlist-btn solid footer-btn">
-              Kembali ke Atas
+              Login
             </a>
           </div>
           <div className="footer-links-grid">
@@ -27,7 +27,7 @@ export default function FooterSection() {
             </div>
             <div>
               <h4>Feature</h4>
-              <a href="#features">Auth</a>
+              <a href="/login">Auth</a>
               <a href="#features">Notes CRUD</a>
               <a href="#features">Calendar Notes</a>
             </div>

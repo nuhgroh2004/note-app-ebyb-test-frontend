@@ -73,8 +73,8 @@ export default function HeroSection({ heroReady }: HeroSectionProps) {
             Fokus pada fitur inti tanpa tambahan yang di luar scope: autentikasi,
             notes management, kalender, dan profil.
           </p>
-          <a href="#features" className="waitlist-btn solid">
-            Lihat Fitur
+          <a href="/register" className="waitlist-btn solid">
+            Register
           </a>
         </motion.div>
       </div>
