@@ -1,8 +1,8 @@
 import styles from "../styles/profile.module.css";
-import type { ProfileUiModel } from "../lib/profileUiMocks";
+import type { ProfileDashboard } from "../lib/profileApi";
 
 type ProfileStatsPanelProps = {
-  stats: ProfileUiModel["stats"];
+  stats: ProfileDashboard["stats"];
 };
 
 export default function ProfileStatsPanel({ stats }: ProfileStatsPanelProps) {

@@ -1,8 +1,8 @@
 import styles from "../styles/profile.module.css";
-import type { ProfileUiModel } from "../lib/profileUiMocks";
+import type { ProfileDetail } from "../lib/profileApi";
 
 type ProfileOverviewPanelProps = {
-  profile: ProfileUiModel["profile"];
+  profile: ProfileDetail;
 };
 
 export default function ProfileOverviewPanel({ profile }: ProfileOverviewPanelProps) {
@@ -24,7 +24,7 @@ export default function ProfileOverviewPanel({ profile }: ProfileOverviewPanelPr
         </div>
         <div className={styles.metaRow}>
           <div className={styles.metaLabel}>Bergabung</div>
-          <div className={styles.metaValue}>{profile.joinedAt}</div>
+          <div className={styles.metaValue}>{profile.createdAt.slice(0, 10)}</div>
         </div>
       </div>
     </section>

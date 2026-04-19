@@ -72,6 +72,13 @@
   padding: 0.5rem 0.88rem;
 }
 
+.primaryButton:disabled,
+.ghostButton:disabled,
+.dangerButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .primaryButton {
   color: #fff;
   background: linear-gradient(130deg, #0d726b, #10a09b);
@@ -104,6 +111,25 @@
   margin: 0.4rem 0 1rem;
   color: rgba(33, 26, 22, 0.68);
   font-size: 0.9rem;
+}
+
+.statusInfo {
+  border-radius: 12px;
+  padding: 0.68rem 0.78rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.statusLoading {
+  border: 1px solid rgba(14, 103, 95, 0.16);
+  background: rgba(14, 103, 95, 0.1);
+  color: #0f635d;
+}
+
+.statusError {
+  border: 1px solid rgba(165, 40, 54, 0.18);
+  background: rgba(165, 40, 54, 0.1);
+  color: #8f1f2b;
 }
 
 .profileMeta {
@@ -183,6 +209,13 @@
   background: rgba(13, 114, 107, 0.13);
   color: #0e675f;
   font-size: 0.78rem;
+}
+
+.emptyState {
+  border-radius: 12px;
+  border: 1px dashed rgba(20, 20, 20, 0.2);
+  padding: 0.72rem;
+  color: rgba(34, 27, 23, 0.66);
 }
 
 @media (max-width: 900px) {
