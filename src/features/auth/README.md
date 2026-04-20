@@ -4,13 +4,12 @@
 Menyediakan antarmuka Login dan Register untuk Notes App.
 
 ## Tahap Saat Ini
-Tahap ini sudah terintegrasi API:
+Tahap UI saat ini:
 - Halaman Login tersedia di /login
 - Halaman Register tersedia di /register
-- Validasi form berjalan di sisi klien
-- Login/Register memanggil API backend melalui Next Route Handler
-- Token dan data user disimpan di localStorage
-- Redirect ke halaman /notes setelah autentikasi berhasil
+- UI menampilkan satu aksi autentikasi: Continue with Google
+- Judul utama pada halaman auth: Welcome to Note App
+- Integrasi backend OAuth Google belum diaktifkan pada endpoint API
 
 ## Komponen
 - components/AuthFrame.tsx
