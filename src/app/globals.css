@@ -38,6 +38,36 @@ body {
   font-family: var(--font-jakarta), sans-serif;
 }
 
+.swal2-popup .btn {
+  border: none;
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  margin: 0 4px;
+}
+
+.swal2-popup .btn-success {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.swal2-popup .btn-success:hover {
+  background: #245a42;
+}
+
+.swal2-popup .btn-danger {
+  background: #c5512d;
+  color: #fff;
+}
+
+.swal2-popup .btn-danger:hover {
+  background: #a74426;
+}
+
 a {
   color: inherit;
   text-decoration: none;

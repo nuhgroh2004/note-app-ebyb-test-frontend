@@ -65,6 +65,14 @@ const calendarColorHexMap: Record<CalendarEntryColor, string> = {
   red: "#dc2626",
 };
 
+const swalWithBootstrapButtons = Swal.mixin({
+  customClass: {
+    confirmButton: "btn btn-success",
+    cancelButton: "btn btn-danger",
+  },
+  buttonsStyling: false,
+});
+
 function cloneCalendarEntries(entriesByDate: CalendarEntriesByDate) {
   const clone: CalendarEntriesByDate = {};
 
@@ -301,37 +309,48 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   }
 
   async function deleteEntry(entryId: string) {
-    const confirmation = await Swal.fire({
+    const confirmation = await swalWithBootstrapButtons.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
       icon: "warning",
-      title: "Hapus item kalender?",
-      text: "Data catatan atau dokumen yang dipilih akan dihapus permanen.",
       showCancelButton: true,
-      confirmButtonText: "Ya, hapus",
-      cancelButtonText: "Batal",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
       reverseButtons: true,
-      confirmButtonColor: "#c5512d",
-      cancelButtonColor: "#7b8696",
     });
 
-    if (!confirmation.isConfirmed) {
+    if (confirmation.isConfirmed) {
+      setEntriesByDate((currentEntriesByDate) => {
+        const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
+        const nextEntries = currentEntries.filter((entry) => entry.id !== entryId);
+
+        if (nextEntries.length === 0) {
+          const remainingEntries = { ...currentEntriesByDate };
+          delete remainingEntries[selectedDateKey];
+          return remainingEntries;
+        }
+
+        return {
+          ...currentEntriesByDate,
+          [selectedDateKey]: nextEntries,
+        };
+      });
+
+      await swalWithBootstrapButtons.fire({
+        title: "Deleted!",
+        text: "Your file has been deleted.",
+        icon: "success",
+      });
       return;
     }
 
-    setEntriesByDate((currentEntriesByDate) => {
-      const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
-      const nextEntries = currentEntries.filter((entry) => entry.id !== entryId);
-
-      if (nextEntries.length === 0) {
-        const remainingEntries = { ...currentEntriesByDate };
-        delete remainingEntries[selectedDateKey];
-        return remainingEntries;
-      }
-
-      return {
-        ...currentEntriesByDate,
-        [selectedDateKey]: nextEntries,
-      };
-    });
+    if (confirmation.dismiss === Swal.DismissReason.cancel) {
+      await swalWithBootstrapButtons.fire({
+        title: "Cancelled",
+        text: "Your imaginary file is safe :)",
+        icon: "error",
+      });
+    }
   }
 
   function openDocumentFromEntry(entry: CalendarEntry) {

@@ -1220,76 +1220,24 @@ export default function NotesWorkspace() {
       return;
     }
 
-    const editor = editorRefs.current[pageIds[0]];
-    if (!editor) {
-      return;
-    }
-
     try {
       const parsedDraft = JSON.parse(rawDraft) as {
         title?: unknown;
-        body?: unknown;
-        label?: unknown;
-        dateKey?: unknown;
       };
 
       const draftTitle =
         typeof parsedDraft.title === "string" ? parsedDraft.title.trim() : "";
-      const draftBody =
-        typeof parsedDraft.body === "string" ? parsedDraft.body.trim() : "";
-      const draftLabel =
-        typeof parsedDraft.label === "string" ? parsedDraft.label.trim() : "Dokumen";
-      const draftDateKey =
-        typeof parsedDraft.dateKey === "string" ? parsedDraft.dateKey.trim() : "";
 
       if (draftTitle) {
         setTitle(draftTitle);
       }
-
-      if (editor.innerText.trim().length === 0) {
-        const metadataCard = document.createElement("div");
-        metadataCard.className = styles.cardBlock;
-        metadataCard.dataset.noteBlock = CARD_BLOCK_TYPE;
-
-        const metadataTitle = document.createElement("p");
-        metadataTitle.className = styles.editorBlockLabel;
-        metadataTitle.textContent = `Dokumen dari Calendar • ${draftLabel || "Dokumen"}`;
-
-        const metadataBody = document.createElement("p");
-        metadataBody.className = styles.editorBlockHelper;
-        metadataBody.textContent = draftDateKey
-          ? `Tanggal referensi kalender: ${draftDateKey}`
-          : "Draft dibuat dari menu Calendar.";
-
-        metadataCard.append(metadataTitle, metadataBody);
-        editor.appendChild(metadataCard);
-
-        if (draftBody) {
-          const paragraph = createEmptyParagraph();
-          paragraph.textContent = draftBody;
-          editor.appendChild(paragraph);
-        }
-
-        const range = document.createRange();
-        range.selectNodeContents(editor);
-        range.collapse(false);
-
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-
-        savedRangesRef.current[pageIds[0]] = range.cloneRange();
-        setActivePageId(pageIds[0]);
-      }
-
-      syncStats();
     } catch {
       // No-op: ignore malformed session draft.
     } finally {
       window.sessionStorage.removeItem(NOTES_CALENDAR_DRAFT_STORAGE_KEY);
       hasAppliedCalendarDraftRef.current = true;
     }
-  }, [pageIds, searchParams, syncStats]);
+  }, [searchParams]);
 
   useEffect(() => {
     const pendingFocusPageId = pendingFocusPageIdRef.current;

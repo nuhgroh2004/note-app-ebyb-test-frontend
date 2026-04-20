@@ -29,6 +29,7 @@
   gap: 14px;
   border-bottom: 0.5px solid var(--dash-border-tertiary);
   padding: 0 16px;
+  position: relative;
 }
 
 .calendarPageTitle {
@@ -39,10 +40,13 @@
 }
 
 .calendarMonthControl {
-  margin-left: auto;
+  margin-left: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .calendarMonthNavButton {
@@ -605,7 +609,8 @@
   }
 
   .calendarMonthControl {
-    margin-left: 0;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .calendarGrid {

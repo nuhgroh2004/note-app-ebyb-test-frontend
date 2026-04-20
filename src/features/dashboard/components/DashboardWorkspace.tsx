@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import CalendarSection from "@/features/calendar/components/CalendarSection";
 import DashboardDocsSection from "./DashboardDocsSection";
 import DashboardSidebar from "./DashboardSidebar";
@@ -13,6 +14,7 @@ import {
 import styles from "../styles/dashboard.module.css";
 
 const DASHBOARD_ACTIVE_NAV_STORAGE_KEY = "dashboard_active_nav_v1";
+const DASHBOARD_ACTIVE_NAV_EVENT = "dashboard-active-nav-changed";
 
 function isDashboardNavKey(value: string | null): value is DashboardNavKey {
   return (
@@ -24,15 +26,64 @@ function isDashboardNavKey(value: string | null): value is DashboardNavKey {
   );
 }
 
-export default function DashboardWorkspace() {
-  const [activeNavId, setActiveNavId] = useState<DashboardNavKey>(() => {
-    if (typeof window === "undefined") {
-      return "all-docs";
+function getStoredActiveNavSnapshot(): DashboardNavKey {
+  if (typeof window === "undefined") {
+    return "all-docs";
+  }
+
+  const savedNav = window.localStorage.getItem(DASHBOARD_ACTIVE_NAV_STORAGE_KEY);
+  return isDashboardNavKey(savedNav) ? savedNav : "all-docs";
+}
+
+function subscribeActiveNav(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key && event.key !== DASHBOARD_ACTIVE_NAV_STORAGE_KEY) {
+      return;
     }
 
-    const savedNav = window.localStorage.getItem(DASHBOARD_ACTIVE_NAV_STORAGE_KEY);
-    return isDashboardNavKey(savedNav) ? savedNav : "all-docs";
-  });
+    onStoreChange();
+  };
+
+  const onCustomEvent = () => {
+    onStoreChange();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(DASHBOARD_ACTIVE_NAV_EVENT, onCustomEvent);
+
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(DASHBOARD_ACTIVE_NAV_EVENT, onCustomEvent);
+  };
+}
+
+function persistActiveNav(nextNav: DashboardNavKey) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(DASHBOARD_ACTIVE_NAV_STORAGE_KEY, nextNav);
+  window.dispatchEvent(new Event(DASHBOARD_ACTIVE_NAV_EVENT));
+}
+
+type DashboardWorkspaceProps = {
+  fixedNavId?: DashboardNavKey;
+};
+
+export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspaceProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const storedActiveNavId = useSyncExternalStore(
+    subscribeActiveNav,
+    getStoredActiveNavSnapshot,
+    () => "all-docs",
+  );
+  const activeNavId = fixedNavId ?? storedActiveNavId;
   const [searchValue, setSearchValue] = useState("");
   const [openMenuDocId, setOpenMenuDocId] = useState<number | null>(null);
 
@@ -49,12 +100,22 @@ export default function DashboardWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!fixedNavId) {
       return;
     }
 
-    window.localStorage.setItem(DASHBOARD_ACTIVE_NAV_STORAGE_KEY, activeNavId);
-  }, [activeNavId]);
+    persistActiveNav(fixedNavId);
+  }, [fixedNavId]);
+
+  useEffect(() => {
+    if (pathname !== "/dashboard") {
+      return;
+    }
+
+    if (activeNavId === "calendar") {
+      router.replace("/calendar");
+    }
+  }, [activeNavId, pathname, router]);
 
   const docs = useMemo(() => {
     if (activeNavId !== "all-docs") {
@@ -116,8 +177,17 @@ export default function DashboardWorkspace() {
           activeNavId={activeNavId}
           navItems={DASHBOARD_NAV_ITEMS}
           onSelectNav={(nextNav) => {
-            setActiveNavId(nextNav);
+            persistActiveNav(nextNav);
             setOpenMenuDocId(null);
+
+            if (pathname === "/dashboard" && nextNav === "calendar") {
+              router.push("/calendar");
+              return;
+            }
+
+            if (pathname === "/calendar" && nextNav !== "calendar") {
+              router.push("/dashboard");
+            }
           }}
         />
 
