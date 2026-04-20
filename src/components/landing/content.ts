@@ -1,122 +1,125 @@
 export type FeatureCardItem = {
+  tag: string;
   title: string;
   description: string;
   image: string;
   alt: string;
+  bullets: string[];
 };
 
 export type CapabilityItem = {
   title: string;
   description: string;
+  detail: string;
 };
 
 export type FaqItem = {
   question: string;
   answer: string;
+  price: string;
+  cta: string;
+  badge?: string;
 };
 
-export const introWords = ["Notes", "App", "Ready."];
+export const introWords = ["Your", "Space", "Ready."];
 
 export const quickPoints = [
   {
-    title: "Login dan Register",
+    title: "Writers",
     description:
-      "Pengguna dapat membuat akun dan masuk menggunakan email dan password.",
+      "Blog drafts, podcast scripts, and daily writing rituals in one flowing workspace.",
   },
   {
-    title: "CRUD Catatan",
+    title: "Creators",
     description:
-      "Tambah, lihat, edit, dan hapus catatan dalam satu alur yang ringkas.",
+      "Ideas, production checklists, and references connected in visual boards.",
   },
   {
-    title: "Catatan Berbasis Kalender",
+    title: "Product Teams",
     description:
-      "Setiap catatan dapat dikaitkan ke tanggal tertentu untuk perencanaan harian.",
+      "Meeting notes, action items, and planning docs linked to the same context.",
   },
   {
-    title: "Dashboard Profile",
+    title: "Students",
     description:
-      "Pengguna melihat ringkasan profil dan aktivitas catatan miliknya.",
+      "Lecture notes, coursework, and exam prep built into one organized system.",
+  },
+  {
+    title: "Operators",
+    description:
+      "Runbooks, task queues, and recurring workflows without bouncing between tools.",
   },
 ];
 
 export const featureCards: FeatureCardItem[] = [
   {
-    title: "Autentikasi Email",
+    tag: "WRITE",
+    title: "From first thought to final form",
     description:
-      "Halaman login dan register untuk akses aman ke data catatan pribadi.",
+      "Capture raw thoughts instantly, then shape them into polished docs you can share.",
     image:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=80",
-    alt: "Person using phone authentication app",
+      "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1400&q=80",
+    alt: "Creative writing desk with notes",
+    bullets: ["Templates", "Write with AI", "Publish and share"],
   },
   {
-    title: "Create dan Edit Catatan",
+    tag: "IMAGINE",
+    title: "Build with connected workflows",
     description:
-      "Buat ide baru lalu perbarui isi catatan kapan saja saat dibutuhkan.",
+      "Turn ideas into systems by connecting docs, automations, and external integrations.",
     image:
-      "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
-    alt: "Writing notes on paper",
+      "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1400&q=80",
+    alt: "Code and integration workflow on monitor",
+    bullets: ["MCP connections", "API integrations", "Custom workflows"],
   },
   {
-    title: "Planning Berdasarkan Tanggal",
+    tag: "PLAN",
+    title: "Planning that does not feel like work",
     description:
-      "Atur catatan pada tanggal tertentu agar agenda harian lebih terstruktur.",
+      "Keep tasks and notes side by side so decisions and execution stay in sync.",
     image:
-      "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1200&q=80",
-    alt: "Notebook and calendar planning",
-  },
-  {
-    title: "Ringkasan Dashboard",
-    description:
-      "Lihat total catatan dan statistik bulanan pada dashboard profile.",
-    image:
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
-    alt: "Dashboard analytics on screen",
+      "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1400&q=80",
+    alt: "Planner with schedule blocks and sticky notes",
+    bullets: ["Task embeds", "Calendar context", "Daily focus"],
   },
 ];
 
 export const capabilityPanels: CapabilityItem[] = [
   {
-    title: "Auth API",
+    title: "Spaces",
     description:
-      "Endpoint register dan login untuk autentikasi berbasis email-password.",
+      "Switch between personal and work contexts without losing momentum.",
+    detail: "Create dedicated spaces for each role, project, or life area.",
   },
   {
-    title: "Notes API",
+    title: "Folders & Tags",
     description:
-      "Endpoint REST untuk create, read, update, dan delete catatan pengguna.",
+      "Classic hierarchy meets flexible tagging for clear and fast retrieval.",
+    detail: "Use folders for structure and tags for cross-cutting themes.",
   },
   {
-    title: "Calendar Notes",
+    title: "Collections",
     description:
-      "Filter catatan per tanggal untuk kebutuhan planning harian.",
-  },
-  {
-    title: "Profile Dashboard",
-    description:
-      "Ringkasan profil, total catatan, dan catatan upcoming pada dashboard.",
+      "Structured tracking with rich fields, views, and reusable systems.",
+    detail: "Build lightweight databases for projects, reading logs, or goals.",
   },
 ];
 
 export const faqItems: FaqItem[] = [
   {
-    question: "Apa saja fitur utama Notes App?",
+    question: "Free",
     answer:
-      "Fitur utama adalah register/login, CRUD catatan, catatan berbasis tanggal kalender, dan dashboard profile.",
+      "Full access for occasional use each week. Start quickly with core workflows.",
+    price: "IDR 0/month",
+    cta: "Get Started",
+    badge: "Starter",
   },
   {
-    question: "Apakah login hanya dengan email dan password?",
+    question: "Plus",
     answer:
-      "Ya. Login menggunakan email dan password sesuai skema autentikasi backend.",
-  },
-  {
-    question: "Apakah catatan bisa dijadwalkan per tanggal?",
-    answer:
-      "Ya. Setiap catatan memiliki tanggal sehingga bisa dipetakan ke kebutuhan kalender.",
-  },
-  {
-    question: "Apa yang ditampilkan dashboard profile?",
-    answer:
-      "Dashboard profile menampilkan data profil pengguna dan statistik catatan.",
+      "Designed for daily use with deeper customization and richer collaboration flow.",
+    price: "IDR 73,250/month",
+    cta: "Upgrade to Plus",
+    badge: "Popular",
   },
 ];
