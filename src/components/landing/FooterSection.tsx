@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const FOOTER_GROUPS = [
   {
     title: "Product",
@@ -27,12 +29,12 @@ export default function FooterSection() {
           <h2>Let&apos;s get started</h2>
           <p>Start for free and build your personal workspace in minutes.</p>
           <div className="footer-top-actions">
-            <a href="/register" className="waitlist-btn solid">
+            <Link href="/register" className="waitlist-btn solid">
               Continue on web
-            </a>
-            <a href="/login" className="waitlist-btn outline dark-outline">
+            </Link>
+            <Link href="/login" className="waitlist-btn outline dark-outline">
               Log in
-            </a>
+            </Link>
           </div>
         </div>
 

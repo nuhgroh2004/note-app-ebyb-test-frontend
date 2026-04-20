@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Reveal from "./Reveal";
 import type { FaqItem } from "./content";
 
@@ -30,9 +31,9 @@ export default function FaqSection({ items }: FaqSectionProps) {
                   <h3>{item.question}</h3>
                   <p>{item.answer}</p>
                   <p className="pricing-value">{item.price}</p>
-                  <a href="/register" className="waitlist-btn solid">
+                  <Link href="/register" className="waitlist-btn solid">
                     {item.cta}
-                  </a>
+                  </Link>
                 </article>
               </Reveal>
             );

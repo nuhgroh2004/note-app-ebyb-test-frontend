@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Reveal from "./Reveal";
 
 const THEME_PRESETS = [
@@ -22,9 +23,9 @@ export default function CalloutSection() {
             Choose visual styles that match your mood while keeping your notes and
             tasks clear and readable.
           </p>
-          <a href="/register" className="text-link">
+          <Link href="/register" className="text-link">
             Explore all themes
-          </a>
+          </Link>
         </Reveal>
 
         <div className="theme-grid">

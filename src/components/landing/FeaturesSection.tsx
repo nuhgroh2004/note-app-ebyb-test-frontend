@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import Reveal from "./Reveal";
 import type { FeatureCardItem } from "./content";
@@ -60,9 +61,9 @@ export default function FeaturesSection({ cards }: FeaturesSectionProps) {
                   <li key={point}>{point}</li>
                 ))}
               </ul>
-              <a href="/register" className="text-link">
+              <Link href="/register" className="text-link">
                 Learn more
-              </a>
+              </Link>
             </div>
           </Reveal>
         </div>

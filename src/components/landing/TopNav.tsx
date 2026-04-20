@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 
 const NAV_LINKS = [
@@ -28,12 +29,12 @@ export default function TopNav() {
           ))}
         </div>
         <div className="nav-actions desktop-only">
-          <a className="nav-login" href="/login">
+          <Link className="nav-login" href="/login">
             Log in
-          </a>
-          <a className="waitlist-btn solid" href="/register">
+          </Link>
+          <Link className="waitlist-btn solid" href="/register">
             Try free
-          </a>
+          </Link>
         </div>
         <button
           type="button"
@@ -60,12 +61,12 @@ export default function TopNav() {
                 {item.label}
               </a>
             ))}
-            <a href="/login" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
               Log in
-            </a>
-            <a href="/register" onClick={() => setMobileMenuOpen(false)}>
+            </Link>
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
               Try free
-            </a>
+            </Link>
           </motion.div>
         ) : null}
       </AnimatePresence>

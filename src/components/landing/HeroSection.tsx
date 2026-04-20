@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 type HeroSectionProps = {
   heroReady: boolean;
@@ -64,12 +65,12 @@ export default function HeroSection({ heroReady }: HeroSectionProps) {
             }
             transition={{ duration: 0.9, delay: 0.48, ease: [0.22, 1, 0.36, 1] }}
           >
-            <a href="/register" className="waitlist-btn solid">
+            <Link href="/register" className="waitlist-btn solid">
               Continue on web
-            </a>
-            <a href="/login" className="waitlist-btn outline">
+            </Link>
+            <Link href="/login" className="waitlist-btn outline">
               Log in
-            </a>
+            </Link>
           </motion.div>
 
           <motion.div
