@@ -354,6 +354,11 @@
   cursor: pointer;
 }
 
+.calendarTypeButton:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 .calendarTypeButtonActive {
   background: var(--dash-bg-primary);
   border-color: var(--dash-border-secondary);
@@ -539,6 +544,7 @@
 }
 
 .calendarOpenDocumentButton,
+.calendarEditEntryButton,
 .calendarDeleteEntryButton {
   min-height: 28px;
   border-radius: 8px;
@@ -551,6 +557,18 @@
   background: rgba(219, 234, 254, 0.9);
   color: #1d4ed8;
   padding: 0 10px;
+}
+
+.calendarEditEntryButton {
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-secondary);
+  color: var(--dash-text-secondary);
+  padding: 0 10px;
+}
+
+.calendarEditEntryButton:hover {
+  border-color: var(--dash-border-secondary);
+  color: var(--dash-text-primary);
 }
 
 .calendarDeleteEntryButton {

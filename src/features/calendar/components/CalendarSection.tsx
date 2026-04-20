@@ -127,6 +127,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [formState, setFormState] = useState<CalendarFormState>(NOTE_FORM_DEFAULTS);
   const [formError, setFormError] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -202,6 +203,8 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
     return `${visibleEntries.length} hasil dari ${selectedEntries.length} item`;
   }, [normalizedSearch, selectedEntries.length, visibleEntries.length]);
 
+  const isEditingEntry = editingEntryId !== null;
+
   function changeMonth(offset: number) {
     const nextMonthDate = new Date(calendarYear, calendarMonthIndex + offset, 1);
     setCalendarYear(nextMonthDate.getFullYear());
@@ -217,6 +220,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
 
     setSelectedDateKey(dateKey);
     setIsFormOpen(false);
+    setEditingEntryId(null);
     setFormError("");
 
     if (isMobileViewport) {
@@ -225,6 +229,8 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   }
 
   function openForm() {
+    setEditingEntryId(null);
+    setFormState(NOTE_FORM_DEFAULTS);
     setIsFormOpen(true);
     setFormError("");
 
@@ -235,6 +241,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
 
   function closeForm() {
     setIsFormOpen(false);
+    setEditingEntryId(null);
     setFormState(NOTE_FORM_DEFAULTS);
     setFormError("");
   }
@@ -242,11 +249,38 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   function closeMobilePanel() {
     setIsMobilePanelOpen(false);
     setIsFormOpen(false);
+    setEditingEntryId(null);
   }
 
   function switchEntryType(nextType: CalendarEntryType) {
+    if (editingEntryId) {
+      return;
+    }
+
     setFormError("");
     setFormState(nextType === "document" ? DOCUMENT_FORM_DEFAULTS : NOTE_FORM_DEFAULTS);
+  }
+
+  function startEditNote(entry: CalendarEntry) {
+    if (entry.type !== "note") {
+      return;
+    }
+
+    setEditingEntryId(entry.id);
+    setFormError("");
+    setFormState({
+      entryType: "note",
+      title: entry.title,
+      body: entry.body,
+      label: entry.label,
+      color: entry.color,
+      time: entry.time,
+    });
+    setIsFormOpen(true);
+
+    if (isMobileViewport) {
+      setIsMobilePanelOpen(true);
+    }
   }
 
   function saveDocumentDraftToSession(entry: CalendarEntry) {
@@ -272,6 +306,36 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
 
     if (!trimmedTitle) {
       setFormError("Judul wajib diisi.");
+      return;
+    }
+
+    if (editingEntryId) {
+      setEntriesByDate((currentEntriesByDate) => {
+        const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
+
+        return {
+          ...currentEntriesByDate,
+          [selectedDateKey]: currentEntries.map((entry) => {
+            if (entry.id !== editingEntryId || entry.type !== "note") {
+              return entry;
+            }
+
+            return {
+              ...entry,
+              title: trimmedTitle,
+              body: formState.body.trim(),
+              label: formState.label,
+              color: formState.color,
+              time: formState.time,
+            };
+          }),
+        };
+      });
+
+      setFormState(NOTE_FORM_DEFAULTS);
+      setEditingEntryId(null);
+      setIsFormOpen(false);
+      setFormError("");
       return;
     }
 
@@ -422,7 +486,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
           ) : (
             <div className={styles.calendarFormWrap}>
               <div className={styles.calendarFormHeader}>
-                <p className={styles.calendarFormTitle}>Item baru</p>
+                <p className={styles.calendarFormTitle}>{isEditingEntry ? "Edit catatan" : "Item baru"}</p>
                 <button
                   type="button"
                   className={styles.calendarFormClose}
@@ -439,6 +503,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                   className={`${styles.calendarTypeButton} ${
                     formState.entryType === "note" ? styles.calendarTypeButtonActive : ""
                   }`}
+                  disabled={isEditingEntry}
                   onClick={() => switchEntryType("note")}
                 >
                   Catatan
@@ -448,6 +513,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                   className={`${styles.calendarTypeButton} ${
                     formState.entryType === "document" ? styles.calendarTypeButtonActive : ""
                   }`}
+                  disabled={isEditingEntry}
                   onClick={() => switchEntryType("document")}
                 >
                   Dokumen
@@ -563,7 +629,11 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
               {formError ? <p className={styles.calendarFormError}>{formError}</p> : null}
 
               <button type="button" className={styles.calendarSaveButton} onClick={saveEntry}>
-                {formState.entryType === "document" ? "Simpan & buka Notes" : "Simpan catatan"}
+                {isEditingEntry
+                  ? "Simpan perubahan"
+                  : formState.entryType === "document"
+                    ? "Simpan & buka Notes"
+                    : "Simpan catatan"}
               </button>
             </div>
           )}
@@ -608,8 +678,16 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                           Buka Notes
                         </button>
                       ) : (
-                        <span className={styles.calendarEntryActionSpacer} />
+                        <button
+                          type="button"
+                          className={styles.calendarEditEntryButton}
+                          onClick={() => startEditNote(entry)}
+                        >
+                          Edit
+                        </button>
                       )}
+
+                      <span className={styles.calendarEntryActionSpacer} />
 
                       <button
                         type="button"
