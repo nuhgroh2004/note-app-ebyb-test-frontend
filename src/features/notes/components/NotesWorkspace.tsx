@@ -31,6 +31,11 @@ type FileTypeKind =
   | "archive"
   | "code"
   | "text";
+type MenuActionIcon = "download" | "rename" | "small" | "regular" | "card" | "delete";
+
+const CARD_BLOCK_TYPE = "card";
+const PARAGRAPH_BLOCK_TYPE = "paragraph";
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 function createPageId() {
   return `page-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -153,6 +158,87 @@ function createHorizontalLine(lineId: (typeof LINE_INSERT_OPTIONS)[number]["id"]
 
   line.classList.add(styles.editorLineDots);
   return line;
+}
+
+function createSvgElement<T extends keyof SVGElementTagNameMap>(
+  tagName: T,
+  attributes: Record<string, string>,
+) {
+  const element = document.createElementNS(SVG_NAMESPACE, tagName);
+
+  Object.entries(attributes).forEach(([key, value]) => {
+    element.setAttribute(key, value);
+  });
+
+  return element;
+}
+
+function createMenuActionIcon(icon: MenuActionIcon) {
+  const iconClassMap: Record<MenuActionIcon, string> = {
+    download: styles.fileCardMenuIconDownload,
+    rename: styles.fileCardMenuIconRename,
+    small: styles.fileCardMenuIconSmall,
+    regular: styles.fileCardMenuIconRegular,
+    card: styles.fileCardMenuIconCard,
+    delete: styles.fileCardMenuIconDelete,
+  };
+
+  const wrapper = document.createElement("span");
+  wrapper.className = `${styles.fileCardMenuItemIcon} ${iconClassMap[icon]}`;
+
+  const svg = createSvgElement("svg", {
+    class: styles.fileCardMenuItemIconSvg,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "1.8",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+  });
+
+  if (icon === "download") {
+    svg.append(
+      createSvgElement("line", { x1: "12", y1: "4", x2: "12", y2: "14" }),
+      createSvgElement("polyline", { points: "8 10 12 14 16 10" }),
+      createSvgElement("path", { d: "M5 19h14" }),
+    );
+  }
+
+  if (icon === "rename") {
+    svg.append(
+      createSvgElement("path", { d: "M12 20h9" }),
+      createSvgElement("path", { d: "M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" }),
+    );
+  }
+
+  if (icon === "small") {
+    svg.append(createSvgElement("rect", { x: "6", y: "9", width: "12", height: "6", rx: "1.5" }));
+  }
+
+  if (icon === "regular") {
+    svg.append(createSvgElement("rect", { x: "5", y: "7", width: "14", height: "10", rx: "1.6" }));
+  }
+
+  if (icon === "card") {
+    svg.append(
+      createSvgElement("rect", { x: "4", y: "6", width: "16", height: "12", rx: "1.8" }),
+      createSvgElement("line", { x1: "10", y1: "6", x2: "10", y2: "18" }),
+    );
+  }
+
+  if (icon === "delete") {
+    svg.append(
+      createSvgElement("polyline", { points: "3 6 5 6 21 6" }),
+      createSvgElement("path", { d: "M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" }),
+      createSvgElement("path", { d: "M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" }),
+      createSvgElement("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+      createSvgElement("line", { x1: "14", y1: "11", x2: "14", y2: "17" }),
+    );
+  }
+
+  wrapper.appendChild(svg);
+  return wrapper;
 }
 
 function appendSpreadsheetColumn(table: HTMLTableElement, onTableMutation?: () => void) {
@@ -352,6 +438,10 @@ export default function NotesWorkspace() {
         node.classList.remove(styles.fileCardMenuOpen);
       });
 
+      editor.querySelectorAll(`.${styles.fileCardMenuButtonVisible}`).forEach((node) => {
+        node.classList.remove(styles.fileCardMenuButtonVisible);
+      });
+
       editor.querySelectorAll(`.${styles.fileRenameRow}`).forEach((node) => {
         node.classList.add(styles.fileRenameRowHidden);
       });
@@ -502,32 +592,47 @@ export default function NotesWorkspace() {
         return;
       }
 
-      if (options?.forceAfterTable) {
-        const anchorElement =
-          range.commonAncestorContainer instanceof Element
-            ? range.commonAncestorContainer
-            : range.commonAncestorContainer.parentElement;
+      const anchorElement =
+        range.commonAncestorContainer instanceof Element
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
 
+      const insertAfterBlock = (block: HTMLElement) => {
+        block.parentNode?.insertBefore(node, block.nextSibling);
+
+        let blockFocusTarget: HTMLElement | null = options?.focusTarget ?? null;
+        if (options?.addParagraphAfter) {
+          const paragraph = createEmptyParagraph();
+          node.parentNode?.insertBefore(paragraph, node.nextSibling);
+          blockFocusTarget = paragraph;
+        }
+
+        if (blockFocusTarget) {
+          setCaretInElement(pageId, blockFocusTarget, true);
+        }
+
+        rememberSelection(pageId);
+        syncStats();
+      };
+
+      if (options?.forceAfterTable) {
         const activeTable = anchorElement?.closest("[data-sheet-type='excel']") as HTMLElement | null;
 
         if (activeTable && editor.contains(activeTable)) {
-          activeTable.parentNode?.insertBefore(node, activeTable.nextSibling);
-
-          let tableFocusTarget: HTMLElement | null = options.focusTarget ?? null;
-          if (options.addParagraphAfter) {
-            const paragraph = createEmptyParagraph();
-            node.parentNode?.insertBefore(paragraph, node.nextSibling);
-            tableFocusTarget = paragraph;
-          }
-
-          if (tableFocusTarget) {
-            setCaretInElement(pageId, tableFocusTarget, true);
-          }
-
-          rememberSelection(pageId);
-          syncStats();
+          insertAfterBlock(activeTable);
           return;
         }
+      }
+
+      // Disallow menu nesting in menu blocks except card, which acts as a container.
+      const activeBlock = anchorElement?.closest("[data-note-block]") as HTMLElement | null;
+      const activeBlockType = activeBlock?.dataset.noteBlock ?? "";
+      const canContainNestedMenu = activeBlockType === CARD_BLOCK_TYPE;
+      const isParagraphBlock = activeBlockType === PARAGRAPH_BLOCK_TYPE;
+
+      if (activeBlock && editor.contains(activeBlock) && !canContainNestedMenu && !isParagraphBlock) {
+        insertAfterBlock(activeBlock);
+        return;
       }
 
       range.deleteContents();
@@ -664,6 +769,7 @@ export default function NotesWorkspace() {
 
       const closeMenu = () => {
         menu.classList.remove(styles.fileCardMenuOpen);
+        menuButton.classList.remove(styles.fileCardMenuButtonVisible);
       };
 
       const closeRenameRow = () => {
@@ -690,19 +796,18 @@ export default function NotesWorkspace() {
         closeRenameRow();
       };
 
-      const appendMenuItem = (label: string, iconClass: string, onClick: () => void) => {
+      const appendMenuItem = (label: string, icon: MenuActionIcon, onClick: () => void) => {
         const itemButton = document.createElement("button");
         itemButton.type = "button";
         itemButton.className = styles.fileCardMenuItem;
 
-        const icon = document.createElement("span");
-        icon.className = `${styles.fileCardMenuItemIcon} ${iconClass}`;
+        const iconNode = createMenuActionIcon(icon);
 
         const labelText = document.createElement("span");
         labelText.className = styles.fileCardMenuItemLabel;
         labelText.textContent = label;
 
-        itemButton.append(icon, labelText);
+        itemButton.append(iconNode, labelText);
         itemButton.addEventListener("mousedown", (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -716,26 +821,26 @@ export default function NotesWorkspace() {
         menu.appendChild(itemButton);
       };
 
-      appendMenuItem("Download", styles.fileCardMenuIconDownload, () => {
+      appendMenuItem("Download", "download", () => {
         const link = document.createElement("a");
         link.href = fileUrl;
         link.download = fileName;
         link.click();
       });
 
-      appendMenuItem("Rename", styles.fileCardMenuIconRename, () => {
+      appendMenuItem("Rename", "rename", () => {
         openRenameRow();
       });
 
-      appendMenuItem("Small", styles.fileCardMenuIconSmall, () => {
+      appendMenuItem("Small", "small", () => {
         applyViewMode("small");
       });
 
-      appendMenuItem("Reguler", styles.fileCardMenuIconRegular, () => {
+      appendMenuItem("Reguler", "regular", () => {
         applyViewMode("regular");
       });
 
-      appendMenuItem("Card", styles.fileCardMenuIconCard, () => {
+      appendMenuItem("Card", "card", () => {
         applyViewMode("card");
       });
 
@@ -785,6 +890,7 @@ export default function NotesWorkspace() {
 
         if (!isOpen) {
           menu.classList.add(styles.fileCardMenuOpen);
+          menuButton.classList.add(styles.fileCardMenuButtonVisible);
         }
       });
 
@@ -877,15 +983,106 @@ export default function NotesWorkspace() {
       }
 
       if (itemId === "code") {
+        const codeCard = document.createElement("div");
+        codeCard.className = styles.codeBlockCard;
+        codeCard.dataset.noteBlock = "code";
+        codeCard.contentEditable = "false";
+
+        const codeMenuButton = document.createElement("button");
+        codeMenuButton.type = "button";
+        codeMenuButton.className = `${styles.fileCardMenuButton} ${styles.codeBlockMenuButton}`;
+
+        const dotsIcon = document.createElement("span");
+        dotsIcon.className = styles.fileCardMenuDots;
+
+        for (let index = 0; index < 3; index += 1) {
+          const dot = document.createElement("span");
+          dot.className = styles.fileCardMenuDot;
+          dotsIcon.appendChild(dot);
+        }
+
+        codeMenuButton.appendChild(dotsIcon);
+
+        const codeMenu = document.createElement("div");
+        codeMenu.className = `${styles.fileCardMenu} ${styles.codeBlockMenu}`;
+
         const codeBlock = document.createElement("pre");
         codeBlock.className = styles.codeBlock;
-        codeBlock.dataset.noteBlock = "code";
+        codeBlock.contentEditable = "true";
+        codeBlock.spellcheck = false;
 
         const codeText = document.createElement("code");
         codeText.textContent = "// tulis kode di sini";
         codeBlock.appendChild(codeText);
 
-        insertNode(codeBlock, { addParagraphAfter: true });
+        const closeCodeMenu = () => {
+          codeMenu.classList.remove(styles.fileCardMenuOpen);
+          codeMenuButton.classList.remove(styles.fileCardMenuButtonVisible);
+        };
+
+        const appendCodeMenuItem = (label: string, icon: MenuActionIcon, onClick: () => void) => {
+          const itemButton = document.createElement("button");
+          itemButton.type = "button";
+          itemButton.className = styles.fileCardMenuItem;
+
+          const iconNode = createMenuActionIcon(icon);
+
+          const labelText = document.createElement("span");
+          labelText.className = styles.fileCardMenuItemLabel;
+          labelText.textContent = label;
+
+          itemButton.append(iconNode, labelText);
+          itemButton.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          });
+          itemButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onClick();
+            closeCodeMenu();
+          });
+
+          codeMenu.appendChild(itemButton);
+        };
+
+        appendCodeMenuItem("Download", "download", () => {
+          const snippetContent = codeBlock.innerText;
+          const blob = new Blob([snippetContent], { type: "text/plain;charset=utf-8" });
+          const snippetUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = snippetUrl;
+          link.download = `snippet-${Date.now()}.txt`;
+          link.click();
+          window.setTimeout(() => {
+            URL.revokeObjectURL(snippetUrl);
+          }, 0);
+        });
+
+        appendCodeMenuItem("Hapus", "delete", () => {
+          codeCard.remove();
+          syncStats();
+        });
+
+        codeMenuButton.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        codeMenuButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const isOpen = codeMenu.classList.contains(styles.fileCardMenuOpen);
+          closeAttachmentMenus();
+
+          if (!isOpen) {
+            codeMenu.classList.add(styles.fileCardMenuOpen);
+            codeMenuButton.classList.add(styles.fileCardMenuButtonVisible);
+          }
+        });
+
+        codeCard.append(codeMenuButton, codeBlock, codeMenu);
+        insertNode(codeCard, { addParagraphAfter: true, focusTarget: codeBlock });
         return;
       }
 
@@ -951,7 +1148,7 @@ export default function NotesWorkspace() {
         setIsCompactSpacing((prev) => !prev);
       }
     },
-    [insertNode],
+    [closeAttachmentMenus, insertNode, syncStats],
   );
 
   const insertPageBreakCanvas = useCallback(() => {
