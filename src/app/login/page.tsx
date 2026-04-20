@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <AuthFrame
       title="Welcome to Note App"
-      copy="Login dengan akun Google untuk melanjutkan ke workspace Anda."
+      copy="Please enter your credentials to log in or continue with SSO."
     >
       <LoginUiForm />
     </AuthFrame>

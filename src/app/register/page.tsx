@@ -5,7 +5,7 @@ export default function RegisterPage() {
   return (
     <AuthFrame
       title="Welcome to Note App"
-      copy="Daftar dengan akun Google untuk membuat workspace baru Anda."
+      copy="Please enter your credentials to sign up or continue with SSO."
     >
       <RegisterUiForm />
     </AuthFrame>
