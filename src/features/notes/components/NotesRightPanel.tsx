@@ -77,8 +77,6 @@ export default function NotesRightPanel({
       </div>
 
       <div className={styles.rightBody}>
-        <p className={styles.dragHint}>Drag and drop any item to the document.</p>
-
         <div className={styles.insertList}>
           {insertItems.length > 0 ? (
             insertItems.map((item) => (

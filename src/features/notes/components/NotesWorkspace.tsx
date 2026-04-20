@@ -21,6 +21,16 @@ type EditorStats = {
 };
 
 type NotesCardTone = "default" | "mint";
+type FileTypeKind =
+  | "generic"
+  | "image"
+  | "pdf"
+  | "word"
+  | "sheet"
+  | "slide"
+  | "archive"
+  | "code"
+  | "text";
 
 function createPageId() {
   return `page-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -51,6 +61,49 @@ function formatFileSize(bytes: number) {
 
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
+}
+
+function getFileTypeMeta(file: File): { label: string; kind: FileTypeKind } {
+  const lowerName = file.name.toLowerCase();
+  const extension = lowerName.includes(".") ? lowerName.split(".").at(-1) || "" : "";
+
+  if (file.type.startsWith("image/")) {
+    return { label: "IMG", kind: "image" };
+  }
+
+  if (file.type === "application/pdf" || extension === "pdf") {
+    return { label: "PDF", kind: "pdf" };
+  }
+
+  if (["doc", "docx", "odt", "rtf"].includes(extension)) {
+    return { label: "DOC", kind: "word" };
+  }
+
+  if (["xls", "xlsx", "csv", "ods"].includes(extension)) {
+    return { label: "XLS", kind: "sheet" };
+  }
+
+  if (["ppt", "pptx", "odp"].includes(extension)) {
+    return { label: "PPT", kind: "slide" };
+  }
+
+  if (["zip", "rar", "7z", "tar", "gz"].includes(extension)) {
+    return { label: "ZIP", kind: "archive" };
+  }
+
+  if (["js", "ts", "tsx", "jsx", "json", "html", "css", "py", "java", "sql"].includes(extension)) {
+    return { label: "<>", kind: "code" };
+  }
+
+  if (["txt", "md", "log"].includes(extension)) {
+    return { label: "TXT", kind: "text" };
+  }
+
+  if (extension.length > 0) {
+    return { label: extension.slice(0, 3).toUpperCase(), kind: "generic" };
+  }
+
+  return { label: "FILE", kind: "generic" };
 }
 
 function createEmptyParagraph() {
@@ -102,7 +155,7 @@ function createHorizontalLine(lineId: (typeof LINE_INSERT_OPTIONS)[number]["id"]
   return line;
 }
 
-function appendSpreadsheetColumn(table: HTMLTableElement) {
+function appendSpreadsheetColumn(table: HTMLTableElement, onTableMutation?: () => void) {
   const headerRow = table.tHead?.rows[0];
   const body = table.tBodies[0];
 
@@ -125,9 +178,11 @@ function appendSpreadsheetColumn(table: HTMLTableElement) {
     cell.innerHTML = "<br>";
     row.appendChild(cell);
   });
+
+  onTableMutation?.();
 }
 
-function appendSpreadsheetRow(table: HTMLTableElement) {
+function appendSpreadsheetRow(table: HTMLTableElement, onTableMutation?: () => void) {
   const headerRow = table.tHead?.rows[0];
   const body = table.tBodies[0];
 
@@ -153,9 +208,10 @@ function appendSpreadsheetRow(table: HTMLTableElement) {
   }
 
   body.appendChild(row);
+  onTableMutation?.();
 }
 
-function createExcelLikeTable(rows: number, cols: number) {
+function createExcelLikeTable(rows: number, cols: number, onTableMutation?: () => void) {
   const wrapper = document.createElement("div");
   wrapper.className = styles.sheetWrapper;
   wrapper.dataset.noteBlock = "table";
@@ -217,7 +273,7 @@ function createExcelLikeTable(rows: number, cols: number) {
   addColumnButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    appendSpreadsheetColumn(table);
+    appendSpreadsheetColumn(table, onTableMutation);
   });
 
   const addRowButton = document.createElement("button");
@@ -230,10 +286,24 @@ function createExcelLikeTable(rows: number, cols: number) {
   addRowButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    appendSpreadsheetRow(table);
+    appendSpreadsheetRow(table, onTableMutation);
   });
 
-  controls.append(addColumnButton, addRowButton);
+  const deleteTableButton = document.createElement("button");
+  deleteTableButton.type = "button";
+  deleteTableButton.className = `${styles.sheetControlButton} ${styles.sheetControlButtonDanger}`;
+  deleteTableButton.textContent = "Hapus Tabel";
+  deleteTableButton.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+  });
+  deleteTableButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    wrapper.remove();
+    onTableMutation?.();
+  });
+
+  controls.append(addColumnButton, addRowButton, deleteTableButton);
   table.append(thead, tbody);
   wrapper.append(table, controls);
   return wrapper;
@@ -280,6 +350,10 @@ export default function NotesWorkspace() {
 
       editor.querySelectorAll(`.${styles.fileCardMenuOpen}`).forEach((node) => {
         node.classList.remove(styles.fileCardMenuOpen);
+      });
+
+      editor.querySelectorAll(`.${styles.fileRenameRow}`).forEach((node) => {
+        node.classList.add(styles.fileRenameRowHidden);
       });
     });
   }, [pageIds]);
@@ -410,7 +484,11 @@ export default function NotesWorkspace() {
   }, []);
 
   const insertNode = useCallback(
-    (node: HTMLElement, options?: { addParagraphAfter?: boolean; focusTarget?: HTMLElement | null }) => {
+    (node: HTMLElement, options?: {
+      addParagraphAfter?: boolean;
+      focusTarget?: HTMLElement | null;
+      forceAfterTable?: boolean;
+    }) => {
       const editableContext = getEditableContext();
       if (!editableContext) {
         return;
@@ -422,6 +500,34 @@ export default function NotesWorkspace() {
       const range = getInsertionRange(pageId, editor);
       if (!range) {
         return;
+      }
+
+      if (options?.forceAfterTable) {
+        const anchorElement =
+          range.commonAncestorContainer instanceof Element
+            ? range.commonAncestorContainer
+            : range.commonAncestorContainer.parentElement;
+
+        const activeTable = anchorElement?.closest("[data-sheet-type='excel']") as HTMLElement | null;
+
+        if (activeTable && editor.contains(activeTable)) {
+          activeTable.parentNode?.insertBefore(node, activeTable.nextSibling);
+
+          let tableFocusTarget: HTMLElement | null = options.focusTarget ?? null;
+          if (options.addParagraphAfter) {
+            const paragraph = createEmptyParagraph();
+            node.parentNode?.insertBefore(paragraph, node.nextSibling);
+            tableFocusTarget = paragraph;
+          }
+
+          if (tableFocusTarget) {
+            setCaretInElement(pageId, tableFocusTarget, true);
+          }
+
+          rememberSelection(pageId);
+          syncStats();
+          return;
+        }
       }
 
       range.deleteContents();
@@ -455,6 +561,19 @@ export default function NotesWorkspace() {
     (file: File) => {
       const fileUrl = registerObjectUrl(file);
       let fileName = file.name;
+      const fileTypeMeta = getFileTypeMeta(file);
+
+      const fileTypeClassMap: Record<FileTypeKind, string> = {
+        generic: styles.fileTypeIconGeneric,
+        image: styles.fileTypeIconImage,
+        pdf: styles.fileTypeIconPdf,
+        word: styles.fileTypeIconWord,
+        sheet: styles.fileTypeIconSheet,
+        slide: styles.fileTypeIconSlide,
+        archive: styles.fileTypeIconArchive,
+        code: styles.fileTypeIconCode,
+        text: styles.fileTypeIconText,
+      };
 
       const wrapper = document.createElement("div");
       wrapper.className = `${styles.fileCard} ${styles.fileCardRegular}`;
@@ -463,6 +582,13 @@ export default function NotesWorkspace() {
 
       const header = document.createElement("div");
       header.className = styles.fileCardHeader;
+
+      const lead = document.createElement("div");
+      lead.className = styles.fileCardLead;
+
+      const fileTypeIcon = document.createElement("span");
+      fileTypeIcon.className = `${styles.fileTypeIcon} ${fileTypeClassMap[fileTypeMeta.kind]}`;
+      fileTypeIcon.textContent = fileTypeMeta.label;
 
       const titleWrap = document.createElement("div");
       titleWrap.className = styles.fileCardTitleWrap;
@@ -476,14 +602,49 @@ export default function NotesWorkspace() {
       metaLabel.textContent = `${formatFileSize(file.size)} • ${file.type || "FILE"}`;
 
       titleWrap.append(nameLabel, metaLabel);
+      lead.append(fileTypeIcon, titleWrap);
 
       const menuButton = document.createElement("button");
       menuButton.type = "button";
       menuButton.className = styles.fileCardMenuButton;
-      menuButton.textContent = "...";
+
+      const dotsIcon = document.createElement("span");
+      dotsIcon.className = styles.fileCardMenuDots;
+
+      for (let index = 0; index < 3; index += 1) {
+        const dot = document.createElement("span");
+        dot.className = styles.fileCardMenuDot;
+        dotsIcon.appendChild(dot);
+      }
+
+      menuButton.appendChild(dotsIcon);
 
       const menu = document.createElement("div");
       menu.className = styles.fileCardMenu;
+
+      const renameRow = document.createElement("div");
+      renameRow.className = `${styles.fileRenameRow} ${styles.fileRenameRowHidden}`;
+
+      const renameInput = document.createElement("input");
+      renameInput.type = "text";
+      renameInput.className = styles.fileRenameInput;
+      renameInput.value = fileName;
+
+      const renameActions = document.createElement("div");
+      renameActions.className = styles.fileRenameActions;
+
+      const renameSaveButton = document.createElement("button");
+      renameSaveButton.type = "button";
+      renameSaveButton.className = `${styles.fileRenameAction} ${styles.fileRenameActionPrimary}`;
+      renameSaveButton.textContent = "Simpan";
+
+      const renameCancelButton = document.createElement("button");
+      renameCancelButton.type = "button";
+      renameCancelButton.className = styles.fileRenameAction;
+      renameCancelButton.textContent = "Batal";
+
+      renameActions.append(renameCancelButton, renameSaveButton);
+      renameRow.append(renameInput, renameActions);
 
       const applyViewMode = (mode: "small" | "regular" | "card") => {
         wrapper.classList.remove(styles.fileCardSmall, styles.fileCardRegular, styles.fileCardLarge);
@@ -505,11 +666,43 @@ export default function NotesWorkspace() {
         menu.classList.remove(styles.fileCardMenuOpen);
       };
 
-      const appendMenuItem = (label: string, onClick: () => void) => {
+      const closeRenameRow = () => {
+        renameRow.classList.add(styles.fileRenameRowHidden);
+      };
+
+      const openRenameRow = () => {
+        renameInput.value = fileName;
+        renameRow.classList.remove(styles.fileRenameRowHidden);
+        window.setTimeout(() => {
+          renameInput.focus();
+          renameInput.select();
+        }, 0);
+      };
+
+      const applyRename = () => {
+        const nextName = renameInput.value.trim();
+        if (nextName.length === 0) {
+          return;
+        }
+
+        fileName = nextName;
+        nameLabel.textContent = fileName;
+        closeRenameRow();
+      };
+
+      const appendMenuItem = (label: string, iconClass: string, onClick: () => void) => {
         const itemButton = document.createElement("button");
         itemButton.type = "button";
         itemButton.className = styles.fileCardMenuItem;
-        itemButton.textContent = label;
+
+        const icon = document.createElement("span");
+        icon.className = `${styles.fileCardMenuItemIcon} ${iconClass}`;
+
+        const labelText = document.createElement("span");
+        labelText.className = styles.fileCardMenuItemLabel;
+        labelText.textContent = label;
+
+        itemButton.append(icon, labelText);
         itemButton.addEventListener("mousedown", (event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -523,33 +716,59 @@ export default function NotesWorkspace() {
         menu.appendChild(itemButton);
       };
 
-      appendMenuItem("Download", () => {
+      appendMenuItem("Download", styles.fileCardMenuIconDownload, () => {
         const link = document.createElement("a");
         link.href = fileUrl;
         link.download = fileName;
         link.click();
       });
 
-      appendMenuItem("Rename", () => {
-        const nextName = window.prompt("Rename file", fileName);
-        if (!nextName || nextName.trim().length === 0) {
-          return;
-        }
-
-        fileName = nextName.trim();
-        nameLabel.textContent = fileName;
+      appendMenuItem("Rename", styles.fileCardMenuIconRename, () => {
+        openRenameRow();
       });
 
-      appendMenuItem("Small", () => {
+      appendMenuItem("Small", styles.fileCardMenuIconSmall, () => {
         applyViewMode("small");
       });
 
-      appendMenuItem("Reguler", () => {
+      appendMenuItem("Reguler", styles.fileCardMenuIconRegular, () => {
         applyViewMode("regular");
       });
 
-      appendMenuItem("Card", () => {
+      appendMenuItem("Card", styles.fileCardMenuIconCard, () => {
         applyViewMode("card");
+      });
+
+      renameSaveButton.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+      });
+
+      renameSaveButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        applyRename();
+      });
+
+      renameCancelButton.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+      });
+
+      renameCancelButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeRenameRow();
+      });
+
+      renameInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          applyRename();
+        }
+
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeRenameRow();
+        }
       });
 
       menuButton.addEventListener("mousedown", (event) => {
@@ -562,6 +781,7 @@ export default function NotesWorkspace() {
         event.stopPropagation();
         const isOpen = menu.classList.contains(styles.fileCardMenuOpen);
         closeAttachmentMenus();
+        closeRenameRow();
 
         if (!isOpen) {
           menu.classList.add(styles.fileCardMenuOpen);
@@ -577,8 +797,8 @@ export default function NotesWorkspace() {
         window.open(fileUrl, "_blank", "noopener,noreferrer");
       });
 
-      header.append(titleWrap, menuButton);
-      wrapper.append(header, menu);
+      header.append(lead, menuButton);
+      wrapper.append(header, renameRow, menu);
       return wrapper;
     },
     [closeAttachmentMenus, registerObjectUrl],
@@ -597,11 +817,7 @@ export default function NotesWorkspace() {
       image.src = imageUrl;
       image.alt = file.name;
 
-      const caption = document.createElement("figcaption");
-      caption.className = styles.imageCaption;
-      caption.textContent = file.name;
-
-      figure.append(image, caption);
+      figure.append(image);
       return figure;
     },
     [registerObjectUrl],
@@ -902,8 +1118,10 @@ export default function NotesWorkspace() {
           }}
           onSetTableHover={setTableHover}
           onInsertTable={(rows, cols) => {
-            const table = createExcelLikeTable(rows, cols);
-            insertNode(table, { addParagraphAfter: true });
+            const table = createExcelLikeTable(rows, cols, () => {
+              syncStats();
+            });
+            insertNode(table, { addParagraphAfter: true, forceAfterTable: true });
             setTableHover(null);
             setIsRightPanelOpen(false);
           }}
