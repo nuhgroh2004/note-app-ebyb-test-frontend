@@ -130,6 +130,49 @@
   margin-left: auto;
 }
 
+.saveStatus {
+  margin: 0;
+  max-width: 220px;
+  font-size: 11.5px;
+  color: var(--notes-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saveStatusError {
+  color: #b42318;
+}
+
+.saveButton {
+  border: 0.5px solid #2d6a4f;
+  background: #2d6a4f;
+  border-radius: 8px;
+  min-height: 30px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.saveButton:hover {
+  background: #245a42;
+  border-color: #245a42;
+}
+
+.saveButton:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.saveButtonDirty {
+  box-shadow: 0 0 0 1px rgba(45, 106, 79, 0.22);
+}
+
 .avatarButton {
   width: 28px;
   height: 28px;
@@ -1300,6 +1343,16 @@
   }
 
   .topTitle {
+    font-size: 12px;
+  }
+
+  .saveStatus {
+    display: none;
+  }
+
+  .saveButton {
+    min-height: 28px;
+    padding: 2px 8px;
     font-size: 12px;
   }
 

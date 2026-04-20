@@ -1,7 +1,13 @@
 "use client";
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  createNote,
+  getNoteById,
+  updateNote,
+  type NoteEntryType,
+} from "@/features/notes/lib/notesApi";
 import NotesEditorCanvas from "./NotesEditorCanvas";
 import NotesLeftPanel from "./NotesLeftPanel";
 import NotesRightPanel from "./NotesRightPanel";
@@ -38,6 +44,132 @@ const CARD_BLOCK_TYPE = "card";
 const PARAGRAPH_BLOCK_TYPE = "paragraph";
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const NOTES_CALENDAR_DRAFT_STORAGE_KEY = "notes_calendar_document_draft";
+const NOTE_CONTENT_VERSION = 1;
+const NOTE_DEFAULT_LOCATION = "All Docs";
+
+type ParsedNoteContent = {
+  pageIds: string[];
+  activePageId: string;
+  pagesById: Record<string, string>;
+  isTitleExpanded: boolean;
+  isCompactSpacing: boolean;
+  cardTone: NotesCardTone;
+};
+
+function parseNoteId(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function getTodayNoteDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function parseStoredNoteContent(rawContent: string): ParsedNoteContent {
+  const fallbackPageId = createPageId();
+  const fallbackContent = rawContent.trim();
+
+  const fallback: ParsedNoteContent = {
+    pageIds: [fallbackPageId],
+    activePageId: fallbackPageId,
+    pagesById: {
+      [fallbackPageId]: fallbackContent,
+    },
+    isTitleExpanded: false,
+    isCompactSpacing: false,
+    cardTone: "default",
+  };
+
+  if (!fallbackContent) {
+    return {
+      ...fallback,
+      pagesById: {
+        [fallbackPageId]: "",
+      },
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(rawContent) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return fallback;
+    }
+
+    const candidate = parsed as {
+      pageIds?: unknown;
+      activePageId?: unknown;
+      pages?: unknown;
+      isTitleExpanded?: unknown;
+      isCompactSpacing?: unknown;
+      cardTone?: unknown;
+    };
+
+    if (!Array.isArray(candidate.pageIds) || !candidate.pages || typeof candidate.pages !== "object") {
+      return fallback;
+    }
+
+    const uniquePageIds = Array.from(
+      new Set(
+        candidate.pageIds.filter(
+          (pageId): pageId is string => typeof pageId === "string" && pageId.trim().length > 0,
+        ),
+      ),
+    );
+
+    const pagesById: Record<string, string> = {};
+    uniquePageIds.forEach((pageId) => {
+      const rawPageContent = (candidate.pages as Record<string, unknown>)[pageId];
+      pagesById[pageId] = typeof rawPageContent === "string" ? rawPageContent : "";
+    });
+
+    if (uniquePageIds.length === 0) {
+      return fallback;
+    }
+
+    const activePageId =
+      typeof candidate.activePageId === "string" && uniquePageIds.includes(candidate.activePageId)
+        ? candidate.activePageId
+        : uniquePageIds[0];
+
+    return {
+      pageIds: uniquePageIds,
+      activePageId,
+      pagesById,
+      isTitleExpanded: candidate.isTitleExpanded === true,
+      isCompactSpacing: candidate.isCompactSpacing === true,
+      cardTone: candidate.cardTone === "mint" ? "mint" : "default",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function buildNoteContentPayload(input: {
+  pageIds: string[];
+  activePageId: string;
+  pagesById: Record<string, string>;
+  isTitleExpanded: boolean;
+  isCompactSpacing: boolean;
+  cardTone: NotesCardTone;
+}) {
+  return JSON.stringify({
+    version: NOTE_CONTENT_VERSION,
+    pageIds: input.pageIds,
+    activePageId: input.activePageId,
+    pages: input.pagesById,
+    isTitleExpanded: input.isTitleExpanded,
+    isCompactSpacing: input.isCompactSpacing,
+    cardTone: input.cardTone,
+  });
+}
 
 function createPageId() {
   return `page-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -398,7 +530,14 @@ function createExcelLikeTable(rows: number, cols: number, onTableMutation?: () =
 }
 
 export default function NotesWorkspace() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryNoteId = useMemo(() => parseNoteId(searchParams.get("noteId")), [searchParams]);
+  const queryEntryType = useMemo<NoteEntryType>(
+    () => (searchParams.get("entry") === "document" ? "document" : "note"),
+    [searchParams],
+  );
   const initialPageId = useMemo(() => createPageId(), []);
 
   const [activeLeftToolId, setActiveLeftToolId] = useState(NOTES_LEFT_TOOLS[0].id);
@@ -417,10 +556,20 @@ export default function NotesWorkspace() {
   const [cardTone, setCardTone] = useState<NotesCardTone>("default");
   const [pageIds, setPageIds] = useState<string[]>(() => [initialPageId]);
   const [activePageId, setActivePageId] = useState(initialPageId);
+  const [savedNoteId, setSavedNoteId] = useState<number | null>(queryNoteId);
+  const [noteEntryType, setNoteEntryType] = useState<NoteEntryType>(queryEntryType);
+  const [isNoteDirty, setIsNoteDirty] = useState(false);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isLoadingNote, setIsLoadingNote] = useState(Boolean(queryNoteId));
+  const [saveErrorMessage, setSaveErrorMessage] = useState("");
+
+  const resolvedNoteId = queryNoteId ?? savedNoteId;
 
   const editorRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const savedRangesRef = useRef<Record<string, Range | null>>({});
   const pendingFocusPageIdRef = useRef<string | null>(null);
+  const pendingLoadedPagesRef = useRef<Record<string, string> | null>(null);
+  const lastLoadedNoteIdRef = useRef<number | null>(null);
   const objectUrlsRef = useRef<string[]>([]);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -430,6 +579,100 @@ export default function NotesWorkspace() {
     const trimmed = title.trim();
     return trimmed.length > 0 ? trimmed : "Untitled Page";
   }, [title]);
+
+  const markNoteDirty = useCallback(() => {
+    setIsNoteDirty((current) => (current ? current : true));
+    setSaveErrorMessage("");
+  }, []);
+
+  const collectPagesById = useCallback(() => {
+    const pagesById: Record<string, string> = {};
+
+    pageIds.forEach((pageId) => {
+      const editor = editorRefs.current[pageId];
+      const rawHtml = editor?.innerHTML ?? "";
+      pagesById[pageId] = rawHtml.trim() === "<br>" ? "" : rawHtml;
+    });
+
+    return pagesById;
+  }, [pageIds]);
+
+  const syncNoteIdToUrl = useCallback(
+    (noteId: number) => {
+      const nextQuery = new URLSearchParams(searchParams.toString());
+      nextQuery.set("noteId", String(noteId));
+      router.replace(`${pathname}?${nextQuery.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const saveNote = useCallback(async () => {
+    const trimmedTitle = title.trim();
+
+    if (trimmedTitle.length < 3) {
+      setSaveErrorMessage("Judul minimal 3 karakter.");
+      return;
+    }
+
+    const payloadContent = buildNoteContentPayload({
+      pageIds,
+      activePageId,
+      pagesById: collectPagesById(),
+      isTitleExpanded,
+      isCompactSpacing,
+      cardTone,
+    });
+
+    if (payloadContent.length > 20000) {
+      setSaveErrorMessage("Konten terlalu panjang. Maksimal 20000 karakter.");
+      return;
+    }
+
+    setIsSavingNote(true);
+    setSaveErrorMessage("");
+
+    try {
+      if (resolvedNoteId) {
+        const updated = await updateNote(resolvedNoteId, {
+          title: trimmedTitle,
+          content: payloadContent,
+        });
+
+        setNoteEntryType(updated.entryType);
+        setSavedNoteId(updated.id);
+      } else {
+        const created = await createNote({
+          title: trimmedTitle,
+          content: payloadContent,
+          noteDate: getTodayNoteDate(),
+          entryType: noteEntryType,
+          location: NOTE_DEFAULT_LOCATION,
+        });
+
+        setSavedNoteId(created.id);
+        setNoteEntryType(created.entryType);
+        syncNoteIdToUrl(created.id);
+      }
+
+      setIsNoteDirty(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menyimpan catatan.";
+      setSaveErrorMessage(message);
+    } finally {
+      setIsSavingNote(false);
+    }
+  }, [
+    activePageId,
+    cardTone,
+    collectPagesById,
+    isCompactSpacing,
+    isTitleExpanded,
+    noteEntryType,
+    pageIds,
+    resolvedNoteId,
+    syncNoteIdToUrl,
+    title,
+  ]);
 
   const closeAttachmentMenus = useCallback(() => {
     pageIds.forEach((pageId) => {
@@ -786,15 +1029,18 @@ export default function NotesWorkspace() {
 
         if (mode === "small") {
           wrapper.classList.add(styles.fileCardSmall);
+          markNoteDirty();
           return;
         }
 
         if (mode === "card") {
           wrapper.classList.add(styles.fileCardLarge);
+          markNoteDirty();
           return;
         }
 
         wrapper.classList.add(styles.fileCardRegular);
+        markNoteDirty();
       };
 
       const closeMenu = () => {
@@ -824,6 +1070,7 @@ export default function NotesWorkspace() {
         fileName = nextName;
         nameLabel.textContent = fileName;
         closeRenameRow();
+        markNoteDirty();
       };
 
       const appendMenuItem = (label: string, icon: MenuActionIcon, onClick: () => void) => {
@@ -877,6 +1124,7 @@ export default function NotesWorkspace() {
       appendMenuItem("Hapus", "delete", () => {
         wrapper.remove();
         syncStats();
+        markNoteDirty();
       });
 
       renameSaveButton.addEventListener("mousedown", (event) => {
@@ -942,7 +1190,7 @@ export default function NotesWorkspace() {
       wrapper.append(header, renameRow, menu);
       return wrapper;
     },
-    [closeAttachmentMenus, registerObjectUrl, syncStats],
+    [closeAttachmentMenus, markNoteDirty, registerObjectUrl, syncStats],
   );
 
   const createImageNode = useCallback(
@@ -975,8 +1223,9 @@ export default function NotesWorkspace() {
       insertNode(attachmentNode, { addParagraphAfter: true });
       event.target.value = "";
       setIsRightPanelOpen(false);
+      markNoteDirty();
     },
-    [createAttachmentNode, insertNode],
+    [createAttachmentNode, insertNode, markNoteDirty],
   );
 
   const handleImageFile = useCallback(
@@ -990,8 +1239,9 @@ export default function NotesWorkspace() {
       insertNode(imageNode, { addParagraphAfter: true });
       event.target.value = "";
       setIsRightPanelOpen(false);
+      markNoteDirty();
     },
-    [createImageNode, insertNode],
+    [createImageNode, insertNode, markNoteDirty],
   );
 
   const insertItem = useCallback(
@@ -1060,6 +1310,7 @@ export default function NotesWorkspace() {
           cardBlock.remove();
           closeCardMenu();
           syncStats();
+          markNoteDirty();
         });
 
         cardMenuButton.addEventListener("mousedown", (event) => {
@@ -1081,6 +1332,7 @@ export default function NotesWorkspace() {
 
         cardBlock.append(cardMenuButton, cardMenu);
         insertNode(cardBlock, { addParagraphAfter: true });
+        markNoteDirty();
         return;
       }
 
@@ -1164,6 +1416,7 @@ export default function NotesWorkspace() {
         appendCodeMenuItem("Hapus", "delete", () => {
           codeCard.remove();
           syncStats();
+          markNoteDirty();
         });
 
         codeMenuButton.addEventListener("mousedown", (event) => {
@@ -1185,46 +1438,55 @@ export default function NotesWorkspace() {
 
         codeCard.append(codeMenuButton, codeBlock, codeMenu);
         insertNode(codeCard, { addParagraphAfter: true, focusTarget: codeBlock });
+        markNoteDirty();
         return;
       }
 
       if (itemId === "align-left") {
         runTextCommand("justifyLeft");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "align-center") {
         runTextCommand("justifyCenter");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "align-right") {
         runTextCommand("justifyRight");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "align-justify") {
         runTextCommand("justifyFull");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "bold") {
         runTextCommand("bold");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "italic") {
         runTextCommand("italic");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "underline") {
         runTextCommand("underline");
+        markNoteDirty();
         return;
       }
 
       if (itemId === "highlight") {
         runTextCommand("hiliteColor", "#fff59d");
+        markNoteDirty();
         return;
       }
 
@@ -1234,6 +1496,7 @@ export default function NotesWorkspace() {
         heading.dataset.noteBlock = "heading";
         heading.textContent = "Heading";
         insertNode(heading, { addParagraphAfter: true });
+        markNoteDirty();
         return;
       }
 
@@ -1255,24 +1518,28 @@ export default function NotesWorkspace() {
 
         checklistItem.append(checkbox, text);
         insertNode(checklistItem, { addParagraphAfter: true });
+        markNoteDirty();
         return;
       }
 
       if (itemId === "title-size") {
         setIsTitleExpanded((prev) => !prev);
+        markNoteDirty();
         return;
       }
 
       if (itemId === "page-color") {
         setCardTone((prev) => (prev === "default" ? "mint" : "default"));
+        markNoteDirty();
         return;
       }
 
       if (itemId === "spacing") {
         setIsCompactSpacing((prev) => !prev);
+        markNoteDirty();
       }
     },
-    [closeAttachmentMenus, insertNode, runTextCommand, syncStats],
+    [closeAttachmentMenus, insertNode, markNoteDirty, runTextCommand, syncStats],
   );
 
   const insertPageBreakCanvas = useCallback(() => {
@@ -1289,7 +1556,8 @@ export default function NotesWorkspace() {
 
     pendingFocusPageIdRef.current = nextPageId;
     setActivePageId(nextPageId);
-  }, [activePageId]);
+    markNoteDirty();
+  }, [activePageId, markNoteDirty]);
 
   const deletePageCanvas = useCallback(
     (pageId: string) => {
@@ -1307,6 +1575,7 @@ export default function NotesWorkspace() {
           savedRangesRef.current[pageId] = null;
           setTitle("");
           setActivePageId(pageId);
+          markNoteDirty();
           window.setTimeout(() => {
             syncStats();
           }, 0);
@@ -1332,16 +1601,129 @@ export default function NotesWorkspace() {
           syncStats();
         }, 0);
 
+        markNoteDirty();
+
         return nextPages;
       });
     },
-    [activePageId, syncStats],
+    [activePageId, markNoteDirty, syncStats],
   );
 
   function closeMobilePanels() {
     setIsLeftPanelOpen(false);
     setIsRightPanelOpen(false);
   }
+
+  useEffect(() => {
+    if (resolvedNoteId) {
+      return;
+    }
+
+    setNoteEntryType(queryEntryType);
+  }, [queryEntryType, resolvedNoteId]);
+
+  useEffect(() => {
+    if (!resolvedNoteId) {
+      setIsLoadingNote(false);
+      lastLoadedNoteIdRef.current = null;
+      return;
+    }
+
+    if (lastLoadedNoteIdRef.current === resolvedNoteId) {
+      return;
+    }
+
+    let isCancelled = false;
+    setIsLoadingNote(true);
+    setSaveErrorMessage("");
+
+    getNoteById(resolvedNoteId)
+      .then((note) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const parsedContent = parseStoredNoteContent(note.content || "");
+        pendingLoadedPagesRef.current = parsedContent.pagesById;
+        editorRefs.current = {};
+        savedRangesRef.current = {};
+
+        setTitle(note.title);
+        setPageIds(parsedContent.pageIds);
+        setActivePageId(parsedContent.activePageId);
+        setIsTitleExpanded(parsedContent.isTitleExpanded);
+        setIsCompactSpacing(parsedContent.isCompactSpacing);
+        setCardTone(parsedContent.cardTone);
+        setNoteEntryType(note.entryType);
+        setSavedNoteId(note.id);
+        setIsNoteDirty(false);
+        lastLoadedNoteIdRef.current = note.id;
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : "Gagal memuat dokumen.";
+        setSaveErrorMessage(message);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingNote(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [resolvedNoteId]);
+
+  useEffect(() => {
+    if (!pendingLoadedPagesRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const pendingPages = pendingLoadedPagesRef.current;
+      if (!pendingPages) {
+        return;
+      }
+
+      pageIds.forEach((pageId) => {
+        const editor = editorRefs.current[pageId];
+        if (!editor) {
+          return;
+        }
+
+        editor.innerHTML = pendingPages[pageId] || "";
+      });
+
+      pendingLoadedPagesRef.current = null;
+      syncStats();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [pageIds, syncStats]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleSaveShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void saveNote();
+      }
+    };
+
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => {
+      window.removeEventListener("keydown", handleSaveShortcut);
+    };
+  }, [saveNote]);
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -1373,6 +1755,13 @@ export default function NotesWorkspace() {
       return;
     }
 
+    const noteIdFromQuery = parseNoteId(searchParams.get("noteId"));
+    if (noteIdFromQuery) {
+      window.sessionStorage.removeItem(NOTES_CALENDAR_DRAFT_STORAGE_KEY);
+      hasAppliedCalendarDraftRef.current = true;
+      return;
+    }
+
     const source = searchParams.get("source");
     const entryType = searchParams.get("entry");
 
@@ -1397,7 +1786,11 @@ export default function NotesWorkspace() {
 
       if (draftTitle) {
         setTitle(draftTitle);
+        setIsNoteDirty(true);
       }
+
+      setNoteEntryType("document");
+      setSaveErrorMessage("");
     } catch {
       // No-op: ignore malformed session draft.
     } finally {
@@ -1478,6 +1871,13 @@ export default function NotesWorkspace() {
               setIsLeftPanelOpen(false);
               setIsRightPanelOpen((prev) => !prev);
             }}
+            onSaveNote={() => {
+              void saveNote();
+            }}
+            isNoteDirty={isNoteDirty}
+            isSavingNote={isSavingNote}
+            isLoadingNote={isLoadingNote}
+            saveErrorMessage={saveErrorMessage}
           />
 
           <NotesEditorCanvas
@@ -1488,11 +1888,15 @@ export default function NotesWorkspace() {
             cardTone={cardTone}
             isCompactSpacing={isCompactSpacing}
             isTitleExpanded={isTitleExpanded}
-            onTitleChange={setTitle}
+            onTitleChange={(nextTitle) => {
+              setTitle(nextTitle);
+              markNoteDirty();
+            }}
             onEditorInput={(pageId) => {
               setActivePageId(pageId);
               syncStats();
               rememberSelection(pageId);
+              markNoteDirty();
             }}
             onSelectionChange={rememberSelection}
             onPageActivate={(pageId) => {
@@ -1515,6 +1919,7 @@ export default function NotesWorkspace() {
             const lineBlock = createHorizontalLine(lineId);
             insertNode(lineBlock, { addParagraphAfter: true });
             setIsRightPanelOpen(false);
+            markNoteDirty();
           }}
           onInsertPageBreak={() => {
             insertPageBreakCanvas();
@@ -1524,10 +1929,12 @@ export default function NotesWorkspace() {
           onInsertTable={(rows, cols) => {
             const table = createExcelLikeTable(rows, cols, () => {
               syncStats();
+              markNoteDirty();
             });
             insertNode(table, { addParagraphAfter: true, forceAfterTable: true });
             setTableHover(null);
             setIsRightPanelOpen(false);
+            markNoteDirty();
           }}
         />
       </section>

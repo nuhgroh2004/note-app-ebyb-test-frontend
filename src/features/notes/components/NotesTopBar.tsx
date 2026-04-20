@@ -5,13 +5,31 @@ type NotesTopBarProps = {
   pageTitle: string;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
+  onSaveNote: () => void;
+  isNoteDirty: boolean;
+  isSavingNote: boolean;
+  isLoadingNote: boolean;
+  saveErrorMessage: string;
 };
 
 export default function NotesTopBar({
   pageTitle,
   onToggleLeftPanel,
   onToggleRightPanel,
+  onSaveNote,
+  isNoteDirty,
+  isSavingNote,
+  isLoadingNote,
+  saveErrorMessage,
 }: NotesTopBarProps) {
+  const saveStatusText = isLoadingNote
+    ? "Memuat dokumen..."
+    : isSavingNote
+      ? "Menyimpan..."
+      : isNoteDirty
+        ? "Perubahan belum disimpan"
+        : "Semua perubahan tersimpan";
+
   return (
     <header className={styles.topbar}>
       <button
@@ -26,6 +44,24 @@ export default function NotesTopBar({
       <p className={styles.topTitle}>{pageTitle}</p>
 
       <div className={styles.topRight}>
+        <p
+          className={`${styles.saveStatus} ${
+            saveErrorMessage ? styles.saveStatusError : ""
+          }`}
+          title={saveErrorMessage || saveStatusText}
+        >
+          {saveErrorMessage || saveStatusText}
+        </p>
+
+        <button
+          type="button"
+          className={`${styles.saveButton} ${isNoteDirty ? styles.saveButtonDirty : ""}`}
+          disabled={isSavingNote || isLoadingNote}
+          onClick={onSaveNote}
+        >
+          {isSavingNote ? "Saving..." : "Save"}
+        </button>
+
         <div className={styles.avatarButton}>N</div>
 
         <button type="button" className={styles.shareButton}>
