@@ -3,6 +3,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
+const NAV_LINKS = [
+  { label: "Product", href: "#product" },
+  { label: "Use Cases", href: "#workflows" },
+  { label: "Structure", href: "#structure" },
+  { label: "Pricing", href: "#pricing" },
+];
+
 export default function TopNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -10,16 +17,24 @@ export default function TopNav() {
     <header className="top-nav-wrap">
       <nav className="top-nav">
         <a href="#hero" className="brand" onClick={() => setMobileMenuOpen(false)}>
-          Notes App
+          <span className="brand-mark">N</span>
+          <span className="brand-text">NoteFlow</span>
         </a>
         <div className="desktop-nav-links">
-          <a href="#features">Fitur</a>
-          <a href="#services">API</a>
-          <a href="#faq">FAQ</a>
+          {NAV_LINKS.map((item) => (
+            <a key={item.label} href={item.href}>
+              {item.label}
+            </a>
+          ))}
         </div>
-        <a className="waitlist-btn desktop-only" href="/login">
-          Login
-        </a>
+        <div className="nav-actions desktop-only">
+          <a className="nav-login" href="/login">
+            Log in
+          </a>
+          <a className="waitlist-btn solid" href="/register">
+            Try free
+          </a>
+        </div>
         <button
           type="button"
           className="menu-btn"
@@ -40,17 +55,16 @@ export default function TopNav() {
             exit={{ opacity: 0, y: -14 }}
             transition={{ duration: 0.3 }}
           >
-            <a href="#features" onClick={() => setMobileMenuOpen(false)}>
-              Fitur
-            </a>
-            <a href="#services" onClick={() => setMobileMenuOpen(false)}>
-              API
-            </a>
-            <a href="#faq" onClick={() => setMobileMenuOpen(false)}>
-              FAQ
-            </a>
+            {NAV_LINKS.map((item) => (
+              <a key={item.label} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                {item.label}
+              </a>
+            ))}
             <a href="/login" onClick={() => setMobileMenuOpen(false)}>
-              Login
+              Log in
+            </a>
+            <a href="/register" onClick={() => setMobileMenuOpen(false)}>
+              Try free
             </a>
           </motion.div>
         ) : null}
