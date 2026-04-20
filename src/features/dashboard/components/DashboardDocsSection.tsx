@@ -4,6 +4,8 @@ import styles from "../styles/dashboard.module.css";
 
 type DashboardDocsSectionProps = {
   docs: DashboardDocItem[];
+  isLoading: boolean;
+  errorMessage: string;
   openMenuDocId: number | null;
   onToggleDocMenu: (docId: number) => void;
   onCloseDocMenus: () => void;
@@ -15,6 +17,8 @@ type DashboardDocsSectionProps = {
 
 export default function DashboardDocsSection({
   docs,
+  isLoading,
+  errorMessage,
   openMenuDocId,
   onToggleDocMenu,
   onCloseDocMenus,
@@ -23,6 +27,24 @@ export default function DashboardDocsSection({
   onDuplicate,
   onDelete,
 }: DashboardDocsSectionProps) {
+  if (isLoading) {
+    return (
+      <section className={styles.content}>
+        <h1 className={styles.pageTitle}>All Docs</h1>
+        <p className={styles.emptyState}>Memuat dokumen...</p>
+      </section>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <section className={styles.content}>
+        <h1 className={styles.pageTitle}>All Docs</h1>
+        <p className={styles.emptyState}>{errorMessage}</p>
+      </section>
+    );
+  }
+
   return (
     <section className={styles.content}>
       <h1 className={styles.pageTitle}>All Docs</h1>

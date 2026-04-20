@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import { readAuthToken, readAuthUser } from "@/features/auth/lib/authSession";
 import CalendarSection from "@/features/calendar/components/CalendarSection";
+import {
+  createNote,
+  deleteNote,
+  getNoteById,
+  listNotes,
+  updateNote,
+  type NoteItem,
+} from "@/features/notes/lib/notesApi";
 import DashboardDocsSection from "./DashboardDocsSection";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardTopbar from "./DashboardTopBar";
 import {
-  DASHBOARD_DOCS,
   DASHBOARD_NAV_ITEMS,
   type DashboardDocItem,
   type DashboardNavKey,
@@ -80,6 +88,43 @@ function persistActiveNav(nextNav: DashboardNavKey) {
   window.dispatchEvent(new Event(DASHBOARD_ACTIVE_NAV_EVENT));
 }
 
+function formatDashboardUpdatedLabel(updatedAtIso: string) {
+  const updatedAt = new Date(updatedAtIso);
+
+  if (Number.isNaN(updatedAt.getTime())) {
+    return "Updated just now";
+  }
+
+  const diffMs = Date.now() - updatedAt.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) {
+    return "Updated just now";
+  }
+
+  if (diffMinutes < 60) {
+    return `Updated ${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `Updated ${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `Updated ${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+}
+
+function mapNoteToDashboardDocItem(note: NoteItem): DashboardDocItem {
+  return {
+    id: note.id,
+    title: note.title,
+    date: formatDashboardUpdatedLabel(note.updatedAt),
+    isStarred: note.isStarred,
+    location: note.location || "All Docs",
+  };
+}
+
 type DashboardWorkspaceProps = {
   fixedNavId?: DashboardNavKey;
 };
@@ -94,7 +139,11 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     () => "all-docs",
   );
   const activeNavId = fixedNavId ?? storedActiveNavId;
-  const [docsState, setDocsState] = useState<DashboardDocItem[]>(() => DASHBOARD_DOCS.map((doc) => ({ ...doc })));
+  const [userInitial, setUserInitial] = useState("M");
+  const [docs, setDocs] = useState<DashboardDocItem[]>([]);
+  const [isDocsLoading, setIsDocsLoading] = useState(false);
+  const [docsErrorMessage, setDocsErrorMessage] = useState("");
+  const [docsReloadKey, setDocsReloadKey] = useState(0);
   const [searchValue, setSearchValue] = useState("");
   const [openMenuDocId, setOpenMenuDocId] = useState<number | null>(null);
 
@@ -109,6 +158,22 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
       window.removeEventListener("click", handleWindowClick);
     };
   }, []);
+
+  useEffect(() => {
+    const token = readAuthToken();
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    const user = readAuthUser();
+    const initial = user?.name?.trim().charAt(0).toUpperCase();
+
+    if (initial) {
+      setUserInitial(initial);
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!fixedNavId) {
@@ -128,25 +193,55 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     }
   }, [activeNavId, pathname, router]);
 
-  const docs = useMemo(() => {
+  useEffect(() => {
     if (activeNavId !== "all-docs") {
-      return [];
+      return;
     }
 
-    const normalizedSearch = searchValue.trim().toLowerCase();
+    let isCancelled = false;
 
-    if (!normalizedSearch) {
-      return docsState;
-    }
+    const timeoutId = window.setTimeout(async () => {
+      setIsDocsLoading(true);
+      setDocsErrorMessage("");
 
-    return docsState.filter((doc) => {
-      const normalizedDoc = `${doc.title} ${doc.date} ${doc.location}`.toLowerCase();
-      return normalizedDoc.includes(normalizedSearch);
-    });
-  }, [activeNavId, docsState, searchValue]);
+      try {
+        const result = await listNotes({
+          page: 1,
+          limit: 100,
+          entryType: "document",
+          search: searchValue.trim() || undefined,
+          sort: "updatedAtDesc",
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        setDocs(result.items.map(mapNoteToDashboardDocItem));
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        const message =
+          error instanceof Error ? error.message : "Gagal memuat dokumen dari server.";
+        setDocsErrorMessage(message);
+        setDocs([]);
+      } finally {
+        if (!isCancelled) {
+          setIsDocsLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeNavId, searchValue, docsReloadKey]);
 
   const searchPlaceholder =
-    activeNavId === "calendar" ? "Cari catatan atau dokumen kalender" : "Open";
+    activeNavId === "calendar" ? "Cari catatan atau dokumen kalender" : "Cari dokumen";
 
   const sectionTitleByNav: Record<Exclude<DashboardNavKey, "all-docs" | "calendar">, string> = {
     tasks: "Tasks",
@@ -161,48 +256,64 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
 
     const query = new URLSearchParams({
       source: "dashboard",
-      docId: String(doc.id),
-      title: doc.title,
+      noteId: String(doc.id),
     });
 
     window.open(`/notes?${query.toString()}`, "_blank", "noopener,noreferrer");
   }
 
-  function toggleDocStar(docId: number) {
-    setDocsState((currentDocs) =>
-      currentDocs.map((doc) =>
-        doc.id === docId
-          ? {
-              ...doc,
-              isStarred: !doc.isStarred,
-              date: "Updated just now",
-            }
-          : doc,
-      ),
-    );
+  async function toggleDocStar(docId: number) {
+    const currentDoc = docs.find((doc) => doc.id === docId);
+
+    if (!currentDoc) {
+      return;
+    }
+
+    try {
+      const updated = await updateNote(docId, {
+        isStarred: !currentDoc.isStarred,
+      });
+
+      setDocs((currentDocs) =>
+        currentDocs.map((doc) =>
+          doc.id === docId
+            ? {
+                ...doc,
+                isStarred: updated.isStarred,
+                date: formatDashboardUpdatedLabel(updated.updatedAt),
+              }
+            : doc,
+        ),
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Gagal mengubah status bintang dokumen.";
+      setDocsErrorMessage(message);
+    }
   }
 
-  function duplicateDoc(docId: number) {
-    setDocsState((currentDocs) => {
-      const sourceDocIndex = currentDocs.findIndex((doc) => doc.id === docId);
-      if (sourceDocIndex === -1) {
-        return currentDocs;
-      }
+  async function duplicateDoc(docId: number) {
+    try {
+      const sourceNote = await getNoteById(docId);
 
-      const sourceDoc = currentDocs[sourceDocIndex];
-      const nextDocId = currentDocs.reduce((highestDocId, doc) => Math.max(highestDocId, doc.id), 0) + 1;
-      const duplicatedDoc: DashboardDocItem = {
-        ...sourceDoc,
-        id: nextDocId,
-        title: `${sourceDoc.title} Copy`,
+      await createNote({
+        title: `${sourceNote.title} Copy`,
+        content: sourceNote.content,
+        noteDate: sourceNote.noteDate.slice(0, 10),
+        entryType: "document",
+        label: sourceNote.label || "Dokumen",
+        color: sourceNote.color || "blue",
+        time: sourceNote.time || "",
         isStarred: false,
-        date: "Updated just now",
-      };
+        location: sourceNote.location || "All Docs",
+      });
 
-      const nextDocs = [...currentDocs];
-      nextDocs.splice(sourceDocIndex + 1, 0, duplicatedDoc);
-      return nextDocs;
-    });
+      setDocsReloadKey((current) => current + 1);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Gagal menduplikasi dokumen.";
+      setDocsErrorMessage(message);
+    }
   }
 
   function deleteDoc(docId: number) {
@@ -216,16 +327,25 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
         cancelButtonText: "No, cancel!",
         reverseButtons: true,
       })
-      .then((result) => {
+      .then(async (result) => {
         if (result.isConfirmed) {
-          setDocsState((currentDocs) => currentDocs.filter((doc) => doc.id !== docId));
-          swalWithBootstrapButtons.fire({
+          try {
+            await deleteNote(docId);
+            setDocs((currentDocs) => currentDocs.filter((doc) => doc.id !== docId));
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Gagal menghapus dokumen.";
+            setDocsErrorMessage(message);
+            return;
+          }
+
+          await swalWithBootstrapButtons.fire({
             title: "Deleted!",
             text: "Your file has been deleted.",
             icon: "success",
           });
         } else if (result.dismiss === Swal.DismissReason.cancel) {
-          swalWithBootstrapButtons.fire({
+          await swalWithBootstrapButtons.fire({
             title: "Cancelled",
             text: "Your imaginary file is safe :)",
             icon: "error",
@@ -239,6 +359,8 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
       return (
         <DashboardDocsSection
           docs={docs}
+          isLoading={isDocsLoading}
+          errorMessage={docsErrorMessage}
           openMenuDocId={openMenuDocId}
           onToggleDocMenu={(docId) => {
             setOpenMenuDocId((currentDocId) => (currentDocId === docId ? null : docId));
@@ -268,7 +390,7 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     <main className={styles.dashboardPage}>
       <section className={styles.dashboardShell}>
         <DashboardSidebar
-          userInitial="M"
+          userInitial={userInitial}
           activeNavId={activeNavId}
           navItems={DASHBOARD_NAV_ITEMS}
           onSelectNav={(nextNav) => {
