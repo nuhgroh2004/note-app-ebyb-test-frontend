@@ -17,6 +17,8 @@ export type DashboardDocItem = {
   id: number;
   title: string;
   date: string;
+  isStarred: boolean;
+  location: "All Docs" | "Tasks" | "Imagine" | "Shared With Me";
 };
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
@@ -28,10 +30,46 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
 ];
 
 export const DASHBOARD_DOCS: DashboardDocItem[] = [
-  { id: 1, title: "Untitled", date: "Updated 2 hours ago" },
-  { id: 2, title: "Meeting Notes", date: "Updated yesterday" },
-  { id: 3, title: "Project Roadmap", date: "Updated 3 days ago" },
-  { id: 4, title: "Design Brief", date: "Updated last week" },
-  { id: 5, title: "Hiring Plan", date: "Updated last week" },
-  { id: 6, title: "Q2 Goals", date: "Updated 9 days ago" },
+  {
+    id: 1,
+    title: "Untitled",
+    date: "Updated 2 hours ago",
+    isStarred: false,
+    location: "All Docs",
+  },
+  {
+    id: 2,
+    title: "Meeting Notes",
+    date: "Updated yesterday",
+    isStarred: false,
+    location: "All Docs",
+  },
+  {
+    id: 3,
+    title: "Project Roadmap",
+    date: "Updated 3 days ago",
+    isStarred: false,
+    location: "All Docs",
+  },
+  {
+    id: 4,
+    title: "Design Brief",
+    date: "Updated last week",
+    isStarred: false,
+    location: "All Docs",
+  },
+  {
+    id: 5,
+    title: "Hiring Plan",
+    date: "Updated last week",
+    isStarred: false,
+    location: "All Docs",
+  },
+  {
+    id: 6,
+    title: "Q2 Goals",
+    date: "Updated 9 days ago",
+    isStarred: false,
+    location: "All Docs",
+  },
 ];

@@ -7,15 +7,23 @@ type DashboardDocCardProps = {
   isMenuOpen: boolean;
   onToggleMenu: (docId: number) => void;
   onCloseMenu: () => void;
+  onOpenInNewTab: (doc: DashboardDocItem) => void;
+  onToggleStar: (docId: number) => void;
+  onDuplicate: (docId: number) => void;
+  onMoveTo: (docId: number) => void;
+  onDelete: (docId: number) => void;
 };
-
-const MENU_SECONDARY_ITEMS = ["Star", "Duplicate", "Move to"];
 
 export default function DashboardDocCard({
   doc,
   isMenuOpen,
   onToggleMenu,
   onCloseMenu,
+  onOpenInNewTab,
+  onToggleStar,
+  onDuplicate,
+  onMoveTo,
+  onDelete,
 }: DashboardDocCardProps) {
   return (
     <article className={styles.docCard} onClick={onCloseMenu}>
@@ -23,6 +31,10 @@ export default function DashboardDocCard({
 
       <div className={styles.docCardFooter}>
         <p className={styles.docCardTitle}>{doc.title}</p>
+        <div className={styles.docCardTags}>
+          {doc.isStarred ? <span className={`${styles.docTag} ${styles.docTagStarred}`}>Starred</span> : null}
+          <span className={`${styles.docTag} ${styles.docTagLocation}`}>{doc.location}</span>
+        </div>
         <p className={styles.docCardDate}>{doc.date}</p>
       </div>
 
@@ -45,17 +57,61 @@ export default function DashboardDocCard({
         className={`${styles.contextMenu} ${isMenuOpen ? styles.contextMenuShow : ""}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <button type="button" role="menuitem" className={styles.menuItem}>
+        <button
+          type="button"
+          role="menuitem"
+          className={styles.menuItem}
+          onClick={() => {
+            onCloseMenu();
+            onOpenInNewTab(doc);
+          }}
+        >
           Open in New Tab
         </button>
         <span className={styles.menuDivider} />
-        {MENU_SECONDARY_ITEMS.map((item) => (
-          <button key={item} type="button" role="menuitem" className={styles.menuItem}>
-            {item}
-          </button>
-        ))}
+        <button
+          type="button"
+          role="menuitem"
+          className={styles.menuItem}
+          onClick={() => {
+            onCloseMenu();
+            onToggleStar(doc.id);
+          }}
+        >
+          {doc.isStarred ? "Unstar" : "Star"}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          className={styles.menuItem}
+          onClick={() => {
+            onCloseMenu();
+            onDuplicate(doc.id);
+          }}
+        >
+          Duplicate
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          className={styles.menuItem}
+          onClick={() => {
+            onCloseMenu();
+            onMoveTo(doc.id);
+          }}
+        >
+          Move to
+        </button>
         <span className={styles.menuDivider} />
-        <button type="button" role="menuitem" className={`${styles.menuItem} ${styles.menuItemDanger}`}>
+        <button
+          type="button"
+          role="menuitem"
+          className={`${styles.menuItem} ${styles.menuItemDanger}`}
+          onClick={() => {
+            onCloseMenu();
+            onDelete(doc.id);
+          }}
+        >
           Delete
         </button>
       </div>

@@ -7,6 +7,11 @@ type DashboardDocsSectionProps = {
   openMenuDocId: number | null;
   onToggleDocMenu: (docId: number) => void;
   onCloseDocMenus: () => void;
+  onOpenInNewTab: (doc: DashboardDocItem) => void;
+  onToggleStar: (docId: number) => void;
+  onDuplicate: (docId: number) => void;
+  onMoveTo: (docId: number) => void;
+  onDelete: (docId: number) => void;
 };
 
 export default function DashboardDocsSection({
@@ -14,6 +19,11 @@ export default function DashboardDocsSection({
   openMenuDocId,
   onToggleDocMenu,
   onCloseDocMenus,
+  onOpenInNewTab,
+  onToggleStar,
+  onDuplicate,
+  onMoveTo,
+  onDelete,
 }: DashboardDocsSectionProps) {
   return (
     <section className={styles.content}>
@@ -28,6 +38,11 @@ export default function DashboardDocsSection({
               isMenuOpen={openMenuDocId === doc.id}
               onToggleMenu={onToggleDocMenu}
               onCloseMenu={onCloseDocMenus}
+              onOpenInNewTab={onOpenInNewTab}
+              onToggleStar={onToggleStar}
+              onDuplicate={onDuplicate}
+              onMoveTo={onMoveTo}
+              onDelete={onDelete}
             />
           ))}
         </div>

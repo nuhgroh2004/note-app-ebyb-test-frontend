@@ -314,8 +314,36 @@
   color: var(--dash-text-primary);
 }
 
+.docCardTags {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.docTag {
+  min-height: 18px;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.docTagStarred {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.docTagLocation {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
 .docCardDate {
-  margin: 2px 0 0;
+  margin: 6px 0 0;
   font-size: 11.5px;
   color: var(--dash-text-tertiary);
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import CalendarSection from "@/features/calendar/components/CalendarSection";
 import DashboardDocsSection from "./DashboardDocsSection";
 import DashboardSidebar from "./DashboardSidebar";
@@ -9,12 +10,30 @@ import DashboardTopbar from "./DashboardTopBar";
 import {
   DASHBOARD_DOCS,
   DASHBOARD_NAV_ITEMS,
+  type DashboardDocItem,
   type DashboardNavKey,
 } from "./dashboardData";
 import styles from "../styles/dashboard.module.css";
 
 const DASHBOARD_ACTIVE_NAV_STORAGE_KEY = "dashboard_active_nav_v1";
 const DASHBOARD_ACTIVE_NAV_EVENT = "dashboard-active-nav-changed";
+
+const DOC_MOVE_TARGET_BY_INPUT = {
+  "all docs": "All Docs",
+  all: "All Docs",
+  tasks: "Tasks",
+  imagine: "Imagine",
+  shared: "Shared With Me",
+  "shared with me": "Shared With Me",
+} as const;
+
+const swalWithBootstrapButtons = Swal.mixin({
+  customClass: {
+    confirmButton: "btn btn-success",
+    cancelButton: "btn btn-danger",
+  },
+  buttonsStyling: false,
+});
 
 function isDashboardNavKey(value: string | null): value is DashboardNavKey {
   return (
@@ -84,6 +103,7 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     () => "all-docs",
   );
   const activeNavId = fixedNavId ?? storedActiveNavId;
+  const [docsState, setDocsState] = useState<DashboardDocItem[]>(() => DASHBOARD_DOCS.map((doc) => ({ ...doc })));
   const [searchValue, setSearchValue] = useState("");
   const [openMenuDocId, setOpenMenuDocId] = useState<number | null>(null);
 
@@ -125,14 +145,14 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     const normalizedSearch = searchValue.trim().toLowerCase();
 
     if (!normalizedSearch) {
-      return DASHBOARD_DOCS;
+      return docsState;
     }
 
-    return DASHBOARD_DOCS.filter((doc) => {
-      const normalizedDoc = `${doc.title} ${doc.date}`.toLowerCase();
+    return docsState.filter((doc) => {
+      const normalizedDoc = `${doc.title} ${doc.date} ${doc.location}`.toLowerCase();
       return normalizedDoc.includes(normalizedSearch);
     });
-  }, [activeNavId, searchValue]);
+  }, [activeNavId, docsState, searchValue]);
 
   const searchPlaceholder =
     activeNavId === "calendar" ? "Cari catatan atau dokumen kalender" : "Open";
@@ -142,6 +162,122 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     imagine: "Imagine",
     shared: "Shared With Me",
   };
+
+  function openDocInNewTab(doc: DashboardDocItem) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const query = new URLSearchParams({
+      source: "dashboard",
+      docId: String(doc.id),
+      title: doc.title,
+    });
+
+    window.open(`/notes?${query.toString()}`, "_blank", "noopener,noreferrer");
+  }
+
+  function toggleDocStar(docId: number) {
+    setDocsState((currentDocs) =>
+      currentDocs.map((doc) =>
+        doc.id === docId
+          ? {
+              ...doc,
+              isStarred: !doc.isStarred,
+              date: "Updated just now",
+            }
+          : doc,
+      ),
+    );
+  }
+
+  function duplicateDoc(docId: number) {
+    setDocsState((currentDocs) => {
+      const sourceDocIndex = currentDocs.findIndex((doc) => doc.id === docId);
+      if (sourceDocIndex === -1) {
+        return currentDocs;
+      }
+
+      const sourceDoc = currentDocs[sourceDocIndex];
+      const nextDocId = currentDocs.reduce((highestDocId, doc) => Math.max(highestDocId, doc.id), 0) + 1;
+      const duplicatedDoc: DashboardDocItem = {
+        ...sourceDoc,
+        id: nextDocId,
+        title: `${sourceDoc.title} Copy`,
+        isStarred: false,
+        date: "Updated just now",
+      };
+
+      const nextDocs = [...currentDocs];
+      nextDocs.splice(sourceDocIndex + 1, 0, duplicatedDoc);
+      return nextDocs;
+    });
+  }
+
+  function moveDoc(docId: number) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const targetInput = window.prompt(
+      "Move to mana? Pilih: All Docs, Tasks, Imagine, Shared With Me",
+      "Tasks",
+    );
+
+    if (!targetInput) {
+      return;
+    }
+
+    const normalizedTargetInput = targetInput.trim().toLowerCase();
+    const nextLocation =
+      DOC_MOVE_TARGET_BY_INPUT[normalizedTargetInput as keyof typeof DOC_MOVE_TARGET_BY_INPUT];
+
+    if (!nextLocation) {
+      window.alert("Tujuan move tidak valid.");
+      return;
+    }
+
+    setDocsState((currentDocs) =>
+      currentDocs.map((doc) =>
+        doc.id === docId
+          ? {
+              ...doc,
+              location: nextLocation,
+              date: `Moved to ${nextLocation} just now`,
+            }
+          : doc,
+      ),
+    );
+  }
+
+  function deleteDoc(docId: number) {
+    swalWithBootstrapButtons
+      .fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "No, cancel!",
+        reverseButtons: true,
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          setDocsState((currentDocs) => currentDocs.filter((doc) => doc.id !== docId));
+          swalWithBootstrapButtons.fire({
+            title: "Deleted!",
+            text: "Your file has been deleted.",
+            icon: "success",
+          });
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          swalWithBootstrapButtons.fire({
+            title: "Cancelled",
+            text: "Your imaginary file is safe :)",
+            icon: "error",
+          });
+        }
+      });
+  }
 
   function renderActiveSection() {
     if (activeNavId === "all-docs") {
@@ -153,6 +289,11 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
             setOpenMenuDocId((currentDocId) => (currentDocId === docId ? null : docId));
           }}
           onCloseDocMenus={() => setOpenMenuDocId(null)}
+          onOpenInNewTab={openDocInNewTab}
+          onToggleStar={toggleDocStar}
+          onDuplicate={duplicateDoc}
+          onMoveTo={moveDoc}
+          onDelete={deleteDoc}
         />
       );
     }
