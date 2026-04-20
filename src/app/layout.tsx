@@ -27,7 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${jakartaSans.variable} ${instrumentSerif.variable}`}>
+    <html
+      lang="id"
+      data-scroll-behavior="smooth"
+      className={`${jakartaSans.variable} ${instrumentSerif.variable}`}
+    >
       <body>{children}</body>
     </html>
   );
