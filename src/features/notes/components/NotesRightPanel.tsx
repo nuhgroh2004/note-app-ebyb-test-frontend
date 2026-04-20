@@ -18,9 +18,6 @@ type NotesRightPanelProps = {
   activeTab: NotesRightTab;
   isOpenOnMobile: boolean;
   tableHover: TableHoverState;
-  blockCount: number;
-  wordCount: number;
-  tableCount: number;
   onSetActiveTab: (tab: NotesRightTab) => void;
   onInsertItem: (itemId: string) => void;
   onInsertLine: (lineId: (typeof LINE_INSERT_OPTIONS)[number]["id"]) => void;
@@ -49,9 +46,6 @@ export default function NotesRightPanel({
   activeTab,
   isOpenOnMobile,
   tableHover,
-  blockCount,
-  wordCount,
-  tableCount,
   onSetActiveTab,
   onInsertItem,
   onInsertLine,
@@ -167,15 +161,6 @@ export default function NotesRightPanel({
           </>
         ) : null}
 
-        {activeTab === "info" ? (
-          <div className={styles.infoPanel}>
-            <p className={styles.infoText}>Blocks inserted: {blockCount}</p>
-            <p className={styles.infoText}>Words in document: {wordCount}</p>
-            <p className={styles.infoText}>Spreadsheet tables: {tableCount}</p>
-            <p className={styles.infoText}>Last update: Just now</p>
-            <p className={styles.infoText}>Sharing: Private</p>
-          </div>
-        ) : null}
       </div>
 
     </aside>

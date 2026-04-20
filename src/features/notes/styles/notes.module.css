@@ -46,24 +46,10 @@
   border-bottom: 0.5px solid var(--notes-border-tertiary);
 }
 
-.docItem {
-  width: 100%;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  border-radius: 9px;
-  padding: 8px 10px;
+.leftTopLabel {
+  margin: 0;
   font-size: 13px;
   color: var(--notes-text-secondary);
-  cursor: pointer;
-  text-align: left;
-}
-
-.docItem:hover {
-  background: var(--notes-bg-primary);
 }
 
 .leftTools {
@@ -109,36 +95,6 @@
   line-height: 1.45;
 }
 
-.leftBottom {
-  padding: 12px 14px;
-  border-top: 0.5px solid var(--notes-border-tertiary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.folderIconWrap,
-.docIconWrap {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.folderIconWrap {
-  border: 0.5px solid var(--notes-border-tertiary);
-  background: var(--notes-bg-primary);
-  color: var(--notes-text-secondary);
-}
-
-.docIconWrap {
-  background: #3b82f6;
-  color: #fff;
-}
-
 .editorArea {
   flex: 1;
   display: flex;
@@ -154,16 +110,6 @@
   background: var(--notes-bg-primary);
   gap: 12px;
   padding: 0 16px;
-}
-
-.topLogo {
-  width: 28px;
-  height: 28px;
-  background: var(--notes-text-primary);
-  color: #fff;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
 }
 
 .topTitle {
@@ -214,7 +160,7 @@
   background: var(--notes-bg-tertiary);
 }
 
-.iconButton {
+.panelToggleButton {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -226,7 +172,7 @@
   cursor: pointer;
 }
 
-.iconButton:hover {
+.panelToggleButton:hover {
   background: var(--notes-bg-secondary);
 }
 
@@ -379,6 +325,8 @@
 }
 
 .cardBlock {
+  position: relative;
+  padding-right: 48px;
   border-color: rgba(59, 130, 246, 0.35);
   background: rgba(219, 234, 254, 0.38);
 }
@@ -409,7 +357,7 @@
   border-radius: 10px;
   border: 1px solid rgba(31, 39, 51, 0.22);
   background: #0f172a;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .codeBlock {
@@ -718,6 +666,7 @@
 
 .fileCard:hover .fileCardMenuButton,
 .codeBlockCard:hover .fileCardMenuButton,
+.cardBlock:hover .fileCardMenuButton,
 .fileCardMenuButtonVisible {
   opacity: 1;
   transform: translateY(0);
@@ -751,7 +700,7 @@
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
   padding: 6px;
   display: none;
-  z-index: 3;
+  z-index: 4000;
 }
 
 .fileCardMenuOpen {
@@ -895,10 +844,22 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 2;
+  z-index: 4001;
 }
 
 .codeBlockMenu {
+  top: 44px;
+  right: 10px;
+}
+
+.cardBlockMenuButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4001;
+}
+
+.cardBlockMenu {
   top: 44px;
   right: 10px;
 }
@@ -931,6 +892,40 @@
   background: var(--notes-bg-secondary);
   color: var(--notes-text-secondary);
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.pageCard:hover .dotsButton,
+.dotsButtonOpen {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.pageCardMenu {
+  position: absolute;
+  top: 44px;
+  right: 12px;
+  min-width: 140px;
+  border: 1px solid rgba(31, 39, 51, 0.16);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+  padding: 6px;
+  display: none;
+  z-index: 5000;
+}
+
+.pageCardMenuOpen {
+  display: grid;
+  gap: 2px;
 }
 
 .rightPanel {
@@ -1049,6 +1044,12 @@
 
 @media (hover: none) {
   .fileCardMenuButton {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .dotsButton {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
@@ -1247,14 +1248,12 @@
     width: 78px;
   }
 
-  .docItemText,
+  .leftTopLabel,
   .tocTitle,
   .tocHint {
     display: none;
   }
 
-  .docItem,
-  .leftBottom,
   .leftTools {
     justify-content: center;
   }
@@ -1285,14 +1284,12 @@
     transform: translateX(0);
   }
 
-  .docItemText,
+  .leftTopLabel,
   .tocTitle,
   .tocHint {
     display: block;
   }
 
-  .docItem,
-  .leftBottom,
   .leftTools {
     justify-content: flex-start;
   }

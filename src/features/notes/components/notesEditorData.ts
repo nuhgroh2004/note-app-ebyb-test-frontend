@@ -14,8 +14,6 @@ export const NOTES_LEFT_TOOLS: NotesToolItem[] = [
 export const NOTES_RIGHT_TABS: NotesRightTabItem[] = [
   { id: "insert", label: "Insert" },
   { id: "format", label: "Format" },
-  { id: "style", label: "Style" },
-  { id: "info", label: "Info" },
 ];
 
 export const NOTES_INSERT_ITEMS: NotesInsertItem[] = [
@@ -31,13 +29,20 @@ export const NOTES_INSERT_ITEMS: NotesInsertItem[] = [
   { id: "code", label: "Code Block", icon: "code", tone: "neutral", tab: "insert" },
   { id: "headings", label: "Headings", icon: "list", tone: "neutral", tab: "format" },
   { id: "checklist", label: "Checklist", icon: "plus", tone: "neutral", tab: "format" },
-  { id: "callout", label: "Callout", icon: "info", tone: "blue", tab: "format" },
-  { id: "title-size", label: "Title Size", icon: "layout", tone: "neutral", tab: "style" },
-  { id: "page-color", label: "Page Color", icon: "image", tone: "muted", tab: "style" },
-  { id: "spacing", label: "Spacing", icon: "list", tone: "neutral", tab: "style" },
-  { id: "activity", label: "Recent Activity", icon: "clock", tone: "neutral", tab: "info" },
-  { id: "sharing", label: "Sharing Access", icon: "share", tone: "neutral", tab: "info" },
-  { id: "notifications", label: "Notifications", icon: "bell", tone: "neutral", tab: "info" },
+  { id: "align-left", label: "Align Left", icon: "layout", tone: "neutral", tab: "format" },
+  { id: "align-center", label: "Center", icon: "layout", tone: "neutral", tab: "format" },
+  { id: "align-right", label: "Align Right", icon: "layout", tone: "neutral", tab: "format" },
+  {
+    id: "align-justify",
+    label: "Justify",
+    icon: "layout",
+    tone: "neutral",
+    tab: "format",
+  },
+  { id: "bold", label: "Bold", icon: "doc", tone: "neutral", tab: "format" },
+  { id: "italic", label: "Italic", icon: "link", tone: "neutral", tab: "format" },
+  { id: "underline", label: "Underline", icon: "share", tone: "neutral", tab: "format" },
+  { id: "highlight", label: "Highlight", icon: "image", tone: "blue", tab: "format" },
 ];
 
 export const LINE_INSERT_OPTIONS = [

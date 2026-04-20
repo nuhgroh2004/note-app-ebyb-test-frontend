@@ -18,10 +18,7 @@ export default function NotesLeftPanel({
   return (
     <aside className={`${styles.leftPanel} ${isOpenOnMobile ? styles.leftPanelOpen : ""}`}>
       <div className={styles.leftTop}>
-        <button type="button" className={styles.docItem}>
-          <NotesIcon name="doc" className={styles.icon16} />
-          <span className={styles.docItemText}>Just Now</span>
-        </button>
+        <p className={styles.leftTopLabel}>Just Now</p>
       </div>
 
       <div className={styles.leftTools}>
@@ -41,15 +38,6 @@ export default function NotesLeftPanel({
       <div className={styles.tocSection}>
         <p className={styles.tocTitle}>Table of Contents</p>
         <p className={styles.tocHint}>Use titles, pages, or cards to create a table of contents.</p>
-      </div>
-
-      <div className={styles.leftBottom}>
-        <button type="button" className={styles.folderIconWrap} aria-label="Open folder">
-          <NotesIcon name="folder" className={styles.icon16} />
-        </button>
-        <button type="button" className={styles.docIconWrap} aria-label="Current document">
-          <NotesIcon name="doc" className={styles.icon16White} />
-        </button>
       </div>
     </aside>
   );

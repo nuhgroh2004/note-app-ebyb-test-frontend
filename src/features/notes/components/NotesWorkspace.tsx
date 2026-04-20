@@ -407,7 +407,7 @@ export default function NotesWorkspace() {
   const [tableHover, setTableHover] = useState<TableHoverState>(null);
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
-  const [stats, setStats] = useState<EditorStats>({
+  const [, setStats] = useState<EditorStats>({
     blockCount: 0,
     wordCount: 0,
     tableCount: 0,
@@ -660,6 +660,32 @@ export default function NotesWorkspace() {
     [getEditableContext, getInsertionRange, rememberSelection, setCaretInElement, syncStats],
   );
 
+  const runTextCommand = useCallback(
+    (command: string, value?: string) => {
+      const editableContext = getEditableContext();
+      if (!editableContext || typeof document.execCommand !== "function") {
+        return;
+      }
+
+      const { pageId, editor } = editableContext;
+      editor.focus();
+
+      const activeRange = getInsertionRange(pageId, editor);
+      if (!activeRange) {
+        return;
+      }
+
+      if (command === "hiliteColor") {
+        document.execCommand("styleWithCSS", false, "true");
+      }
+
+      document.execCommand(command, false, value);
+      rememberSelection(pageId);
+      syncStats();
+    },
+    [getEditableContext, getInsertionRange, rememberSelection, syncStats],
+  );
+
   const registerObjectUrl = useCallback((file: File) => {
     const objectUrl = URL.createObjectURL(file);
     objectUrlsRef.current.push(objectUrl);
@@ -848,6 +874,11 @@ export default function NotesWorkspace() {
         applyViewMode("card");
       });
 
+      appendMenuItem("Hapus", "delete", () => {
+        wrapper.remove();
+        syncStats();
+      });
+
       renameSaveButton.addEventListener("mousedown", (event) => {
         event.preventDefault();
       });
@@ -911,7 +942,7 @@ export default function NotesWorkspace() {
       wrapper.append(header, renameRow, menu);
       return wrapper;
     },
-    [closeAttachmentMenus, registerObjectUrl],
+    [closeAttachmentMenus, registerObjectUrl, syncStats],
   );
 
   const createImageNode = useCallback(
@@ -982,6 +1013,73 @@ export default function NotesWorkspace() {
           "Write concise context, key metrics, or decisions here.",
           "card",
         );
+
+        const cardMenuButton = document.createElement("button");
+        cardMenuButton.type = "button";
+        cardMenuButton.className = `${styles.fileCardMenuButton} ${styles.cardBlockMenuButton}`;
+
+        const dotsIcon = document.createElement("span");
+        dotsIcon.className = styles.fileCardMenuDots;
+
+        for (let index = 0; index < 3; index += 1) {
+          const dot = document.createElement("span");
+          dot.className = styles.fileCardMenuDot;
+          dotsIcon.appendChild(dot);
+        }
+
+        cardMenuButton.appendChild(dotsIcon);
+
+        const cardMenu = document.createElement("div");
+        cardMenu.className = `${styles.fileCardMenu} ${styles.cardBlockMenu}`;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = styles.fileCardMenuItem;
+
+        const deleteIcon = createMenuActionIcon("delete");
+        const deleteLabel = document.createElement("span");
+        deleteLabel.className = styles.fileCardMenuItemLabel;
+        deleteLabel.textContent = "Hapus";
+
+        deleteButton.append(deleteIcon, deleteLabel);
+        cardMenu.appendChild(deleteButton);
+
+        const closeCardMenu = () => {
+          cardMenu.classList.remove(styles.fileCardMenuOpen);
+          cardMenuButton.classList.remove(styles.fileCardMenuButtonVisible);
+        };
+
+        deleteButton.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        deleteButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          cardBlock.remove();
+          closeCardMenu();
+          syncStats();
+        });
+
+        cardMenuButton.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        cardMenuButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const isOpen = cardMenu.classList.contains(styles.fileCardMenuOpen);
+          closeAttachmentMenus();
+
+          if (!isOpen) {
+            cardMenu.classList.add(styles.fileCardMenuOpen);
+            cardMenuButton.classList.add(styles.fileCardMenuButtonVisible);
+          }
+        });
+
+        cardBlock.append(cardMenuButton, cardMenu);
         insertNode(cardBlock, { addParagraphAfter: true });
         return;
       }
@@ -1090,6 +1188,46 @@ export default function NotesWorkspace() {
         return;
       }
 
+      if (itemId === "align-left") {
+        runTextCommand("justifyLeft");
+        return;
+      }
+
+      if (itemId === "align-center") {
+        runTextCommand("justifyCenter");
+        return;
+      }
+
+      if (itemId === "align-right") {
+        runTextCommand("justifyRight");
+        return;
+      }
+
+      if (itemId === "align-justify") {
+        runTextCommand("justifyFull");
+        return;
+      }
+
+      if (itemId === "bold") {
+        runTextCommand("bold");
+        return;
+      }
+
+      if (itemId === "italic") {
+        runTextCommand("italic");
+        return;
+      }
+
+      if (itemId === "underline") {
+        runTextCommand("underline");
+        return;
+      }
+
+      if (itemId === "highlight") {
+        runTextCommand("hiliteColor", "#fff59d");
+        return;
+      }
+
       if (itemId === "headings") {
         const heading = document.createElement("h2");
         heading.className = styles.editorHeading;
@@ -1120,24 +1258,6 @@ export default function NotesWorkspace() {
         return;
       }
 
-      if (itemId === "callout") {
-        const callout = document.createElement("div");
-        callout.className = styles.calloutBlock;
-        callout.dataset.noteBlock = "callout";
-
-        const titleText = document.createElement("p");
-        titleText.className = styles.calloutTitle;
-        titleText.textContent = "Callout";
-
-        const bodyText = document.createElement("p");
-        bodyText.className = styles.calloutBody;
-        bodyText.textContent = "Tambahkan catatan penting agar mudah ditemukan.";
-
-        callout.append(titleText, bodyText);
-        insertNode(callout, { addParagraphAfter: true });
-        return;
-      }
-
       if (itemId === "title-size") {
         setIsTitleExpanded((prev) => !prev);
         return;
@@ -1152,7 +1272,7 @@ export default function NotesWorkspace() {
         setIsCompactSpacing((prev) => !prev);
       }
     },
-    [closeAttachmentMenus, insertNode, syncStats],
+    [closeAttachmentMenus, insertNode, runTextCommand, syncStats],
   );
 
   const insertPageBreakCanvas = useCallback(() => {
@@ -1170,6 +1290,53 @@ export default function NotesWorkspace() {
     pendingFocusPageIdRef.current = nextPageId;
     setActivePageId(nextPageId);
   }, [activePageId]);
+
+  const deletePageCanvas = useCallback(
+    (pageId: string) => {
+      setPageIds((prev) => {
+        if (!prev.includes(pageId)) {
+          return prev;
+        }
+
+        if (prev.length === 1) {
+          const remainingEditor = editorRefs.current[pageId];
+          if (remainingEditor) {
+            remainingEditor.innerHTML = "";
+          }
+
+          savedRangesRef.current[pageId] = null;
+          setTitle("");
+          setActivePageId(pageId);
+          window.setTimeout(() => {
+            syncStats();
+          }, 0);
+          return prev;
+        }
+
+        const currentIndex = prev.indexOf(pageId);
+        const nextPages = prev.filter((currentPageId) => currentPageId !== pageId);
+
+        if (activePageId === pageId) {
+          const fallbackIndex = Math.min(currentIndex, nextPages.length - 1);
+          const fallbackPageId = nextPages[fallbackIndex];
+
+          if (fallbackPageId) {
+            setActivePageId(fallbackPageId);
+          }
+        }
+
+        delete editorRefs.current[pageId];
+        delete savedRangesRef.current[pageId];
+
+        window.setTimeout(() => {
+          syncStats();
+        }, 0);
+
+        return nextPages;
+      });
+    },
+    [activePageId, syncStats],
+  );
 
   function closeMobilePanels() {
     setIsLeftPanelOpen(false);
@@ -1331,6 +1498,7 @@ export default function NotesWorkspace() {
             onPageActivate={(pageId) => {
               setActivePageId(pageId);
             }}
+            onDeletePage={deletePageCanvas}
           />
         </section>
 
@@ -1338,9 +1506,6 @@ export default function NotesWorkspace() {
           activeTab={activeRightTab}
           isOpenOnMobile={isRightPanelOpen}
           tableHover={tableHover}
-          blockCount={stats.blockCount}
-          wordCount={stats.wordCount}
-          tableCount={stats.tableCount}
           onSetActiveTab={(tab) => setActiveRightTab(tab)}
           onInsertItem={(itemId) => {
             insertItem(itemId);

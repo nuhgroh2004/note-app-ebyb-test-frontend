@@ -1,4 +1,4 @@
-export type NotesRightTab = "insert" | "format" | "style" | "info";
+export type NotesRightTab = "insert" | "format";
 
 export type NotesIconName =
   | "doc"

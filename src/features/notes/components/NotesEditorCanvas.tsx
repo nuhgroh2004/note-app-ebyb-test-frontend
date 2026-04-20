@@ -1,4 +1,4 @@
-import type { RefCallback } from "react";
+import { useEffect, useState, type RefCallback } from "react";
 import styles from "../styles/notes.module.css";
 
 type NotesEditorCanvasProps = {
@@ -13,6 +13,7 @@ type NotesEditorCanvasProps = {
   onEditorInput: (pageId: string) => void;
   onSelectionChange: (pageId: string) => void;
   onPageActivate: (pageId: string) => void;
+  onDeletePage: (pageId: string) => void;
 };
 
 export default function NotesEditorCanvas({
@@ -27,7 +28,19 @@ export default function NotesEditorCanvas({
   onEditorInput,
   onSelectionChange,
   onPageActivate,
+  onDeletePage,
 }: NotesEditorCanvasProps) {
+  const [openPageMenuId, setOpenPageMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const closeMenu = () => setOpenPageMenuId(null);
+    window.addEventListener("click", closeMenu);
+
+    return () => {
+      window.removeEventListener("click", closeMenu);
+    };
+  }, []);
+
   return (
     <div className={styles.editorBody}>
       <div className={styles.pageStack}>
@@ -38,9 +51,33 @@ export default function NotesEditorCanvas({
               cardTone === "mint" ? styles.pageCardMint : ""
             } ${activePageId === pageId ? styles.pageCardActive : ""}`}
           >
-            <button type="button" className={styles.dotsButton} aria-label="Page menu">
+            <button
+              type="button"
+              className={`${styles.dotsButton} ${openPageMenuId === pageId ? styles.dotsButtonOpen : ""}`}
+              aria-label="Page menu"
+              onClick={(event) => {
+                event.stopPropagation();
+                setOpenPageMenuId((current) => (current === pageId ? null : pageId));
+              }}
+            >
               <span>...</span>
             </button>
+
+            {openPageMenuId === pageId ? (
+              <div className={`${styles.pageCardMenu} ${styles.pageCardMenuOpen}`}>
+                <button
+                  type="button"
+                  className={styles.fileCardMenuItem}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setOpenPageMenuId(null);
+                    onDeletePage(pageId);
+                  }}
+                >
+                  <span>Hapus</span>
+                </button>
+              </div>
+            ) : null}
 
             {index === 0 ? (
               <>
