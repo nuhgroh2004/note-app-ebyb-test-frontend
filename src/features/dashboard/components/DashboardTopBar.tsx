@@ -3,11 +3,13 @@ import styles from "../styles/dashboard.module.css";
 
 type DashboardTopbarProps = {
   searchValue: string;
+  searchPlaceholder?: string;
   onSearchValueChange: (nextValue: string) => void;
 };
 
 export default function DashboardTopbar({
   searchValue,
+  searchPlaceholder = "Open",
   onSearchValueChange,
 }: DashboardTopbarProps) {
   return (
@@ -18,7 +20,7 @@ export default function DashboardTopbar({
           type="text"
           value={searchValue}
           onChange={(event) => onSearchValueChange(event.target.value)}
-          placeholder="Open"
+          placeholder={searchPlaceholder}
           className={styles.searchInput}
         />
       </label>

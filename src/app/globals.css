@@ -1,3 +1,5 @@
+@import "sweetalert2/dist/sweetalert2.min.css";
+
 :root {
   --bg: #e7f4ff;
   --bg-deep: #d4e9ff;

@@ -9,6 +9,7 @@ Menyediakan halaman dashboard frontend dengan tampilan bergaya Craft docs, denga
 - Satu ikon notifikasi (bell) pada sisi kanan topbar.
 - Grid dokumen dengan context menu per kartu.
 - Efek bayangan border pada area body kartu dokumen.
+- Integrasi menu Calendar melalui modul terpisah di fitur calendar.
 
 ## Struktur
 - components/dashboardData.ts
@@ -27,3 +28,4 @@ Menyediakan halaman dashboard frontend dengan tampilan bergaya Craft docs, denga
 ## Catatan Implementasi
 - Data dokumen masih static untuk kebutuhan tampilan frontend.
 - Search bekerja secara client-side pada daftar dokumen static.
+- State menu sidebar dashboard disimpan pada localStorage key dashboard_active_nav_v1.

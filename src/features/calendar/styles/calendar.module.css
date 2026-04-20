@@ -1,0 +1,649 @@
+.calendarContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  position: relative;
+}
+
+.calendarLayout {
+  width: 100%;
+  min-height: 640px;
+  display: flex;
+  border: 0.5px solid var(--dash-border-tertiary);
+  border-radius: 16px;
+  background: var(--dash-bg-primary);
+  overflow: hidden;
+}
+
+.calendarMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendarHeader {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+  padding: 0 16px;
+}
+
+.calendarPageTitle {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarMonthControl {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendarMonthNavButton {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-secondary);
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.calendarMonthNavButton:hover {
+  border-color: var(--dash-border-secondary);
+}
+
+.calendarMonthLabel {
+  margin: 0;
+  min-width: 138px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarGridWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.calendarDayLabels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+}
+
+.calendarDayLabel {
+  margin: 0;
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dash-text-tertiary);
+}
+
+.calendarGrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(96px, 1fr);
+}
+
+.calendarCell {
+  border: none;
+  border-right: 0.5px solid var(--dash-border-tertiary);
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-primary);
+  padding: 7px 7px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+}
+
+.calendarCell:nth-child(7n) {
+  border-right: none;
+}
+
+.calendarCell:hover {
+  background: rgba(245, 246, 247, 0.72);
+}
+
+.calendarCellOutside {
+  background: rgba(245, 246, 247, 0.32);
+}
+
+.calendarCellSelected {
+  background: rgba(220, 252, 231, 0.44);
+  box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.35);
+  z-index: 1;
+}
+
+.calendarDayNumber {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarCellOutside .calendarDayNumber {
+  color: var(--dash-text-tertiary);
+}
+
+.calendarCellToday .calendarDayNumber {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.calendarCellEntries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.calendarChipText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendarNoteChip,
+.calendarDocumentChip,
+.calendarMoreChip {
+  min-height: 20px;
+  border-radius: 5px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.calendarNoteChip {
+  border: 0.5px solid transparent;
+}
+
+.calendarNoteChipGreen {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.calendarNoteChipBlue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.calendarNoteChipPurple {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.calendarNoteChipAmber {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.calendarNoteChipRed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.calendarDocumentChip {
+  background: rgba(30, 64, 175, 0.09);
+  color: #1d4ed8;
+  border: 1px dashed rgba(30, 64, 175, 0.35);
+}
+
+.calendarDocumentChipTag {
+  min-width: 28px;
+  min-height: 14px;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.16);
+  display: inline-grid;
+  place-items: center;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+}
+
+.calendarMoreChip {
+  padding: 0;
+  background: transparent;
+  color: var(--dash-text-tertiary);
+}
+
+.calendarPanel {
+  width: 306px;
+  border-left: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendarPanelHeader {
+  padding: 14px 14px 12px;
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+}
+
+.calendarPanelHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendarPanelDate {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarPanelMeta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--dash-text-tertiary);
+}
+
+.calendarPanelCloseButton {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  border-radius: 8px;
+  background: var(--dash-bg-secondary);
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+}
+
+.calendarAddButton {
+  margin: 12px;
+  border: 1px dashed var(--dash-border-secondary);
+  background: transparent;
+  border-radius: 10px;
+  min-height: 36px;
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+}
+
+.calendarAddButton:hover {
+  background: var(--dash-bg-secondary);
+}
+
+.calendarFormWrap {
+  margin: 12px;
+  border: 0.5px solid var(--dash-border-secondary);
+  border-radius: 12px;
+  background: var(--dash-bg-primary);
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.calendarFormHeader {
+  min-height: 39px;
+  padding: 0 12px;
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--dash-bg-secondary);
+}
+
+.calendarFormTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarFormClose {
+  border: none;
+  background: transparent;
+  color: var(--dash-text-tertiary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendarTypeSwitch {
+  margin: 0 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendarTypeButton {
+  min-height: 32px;
+  border-radius: 8px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-secondary);
+  color: var(--dash-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.calendarTypeButtonActive {
+  background: var(--dash-bg-primary);
+  border-color: var(--dash-border-secondary);
+  color: var(--dash-text-primary);
+}
+
+.calendarFieldWrap {
+  margin: 0 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.calendarFieldLabel {
+  font-size: 11px;
+  color: var(--dash-text-tertiary);
+}
+
+.calendarFieldInput,
+.calendarFieldTextarea,
+.calendarFieldSelect {
+  width: 100%;
+  border: 0.5px solid var(--dash-border-tertiary);
+  border-radius: 8px;
+  outline: none;
+  background: var(--dash-bg-primary);
+  color: var(--dash-text-primary);
+  font-size: 12.5px;
+}
+
+.calendarFieldInput,
+.calendarFieldSelect {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.calendarFieldTextarea {
+  min-height: 68px;
+  padding: 8px 10px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.calendarFieldInput:focus,
+.calendarFieldTextarea:focus,
+.calendarFieldSelect:focus {
+  border-color: var(--dash-border-secondary);
+}
+
+.calendarColorRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.calendarColorButton {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.calendarColorButtonActive {
+  border-color: rgba(31, 39, 51, 0.85);
+}
+
+.calendarDocumentHint {
+  margin: 0 12px;
+  border: 1px dashed rgba(30, 64, 175, 0.32);
+  border-radius: 9px;
+  background: rgba(219, 234, 254, 0.38);
+  color: #1e3a8a;
+  padding: 9px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.calendarFormError {
+  margin: 0 12px;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.calendarSaveButton {
+  margin: 0 12px;
+  min-height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: #2d6a4f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calendarSaveButton:hover {
+  background: #245a42;
+}
+
+.calendarPanelListWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+
+.calendarEntryList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.calendarEntryCard {
+  border: 0.5px solid var(--dash-border-tertiary);
+  border-radius: 11px;
+  background: var(--dash-bg-primary);
+  padding: 9px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.calendarEntryCardDocument {
+  border-color: rgba(30, 64, 175, 0.3);
+  background: rgba(239, 246, 255, 0.72);
+}
+
+.calendarEntryMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.calendarEntryDocumentTag {
+  min-height: 18px;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.16);
+  color: #1d4ed8;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.calendarEntryColorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.calendarEntryLabel,
+.calendarEntryTime {
+  font-size: 10.5px;
+  color: var(--dash-text-tertiary);
+}
+
+.calendarEntryTime {
+  margin-left: auto;
+}
+
+.calendarEntryTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.calendarEntryBody {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dash-text-secondary);
+}
+
+.calendarEntryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendarOpenDocumentButton,
+.calendarDeleteEntryButton {
+  min-height: 28px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.calendarOpenDocumentButton {
+  border: 0.5px solid rgba(30, 64, 175, 0.45);
+  background: rgba(219, 234, 254, 0.9);
+  color: #1d4ed8;
+  padding: 0 10px;
+}
+
+.calendarDeleteEntryButton {
+  border: none;
+  background: transparent;
+  color: #b54708;
+  padding: 0;
+}
+
+.calendarDeleteEntryButton:hover {
+  color: #922f1f;
+}
+
+.calendarEntryActionSpacer {
+  flex: 1;
+}
+
+.calendarEmptyState {
+  margin: 10px 0 0;
+  border: 1px dashed var(--dash-border-tertiary);
+  border-radius: 11px;
+  background: rgba(245, 246, 247, 0.56);
+  color: var(--dash-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  padding: 13px 12px;
+}
+
+.calendarMobileBackdrop {
+  display: none;
+}
+
+@media (max-width: 1240px) {
+  .calendarPanel {
+    width: 284px;
+  }
+}
+
+@media (max-width: 980px) {
+  .calendarContent {
+    padding: 20px;
+  }
+
+  .calendarLayout {
+    min-height: 0;
+  }
+
+  .calendarHeader {
+    min-height: auto;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .calendarPageTitle {
+    font-size: 20px;
+  }
+
+  .calendarMonthControl {
+    margin-left: 0;
+  }
+
+  .calendarGrid {
+    grid-auto-rows: minmax(84px, 1fr);
+  }
+
+  .calendarPanel {
+    width: min(90vw, 340px);
+    border-left: 0.5px solid var(--dash-border-tertiary);
+    border-top: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    transform: translateX(104%);
+    transition: transform 0.22s ease;
+    z-index: 3000;
+    box-shadow: -10px 0 24px rgba(10, 19, 35, 0.18);
+  }
+
+  .calendarPanelMobileOpen {
+    transform: translateX(0);
+  }
+
+  .calendarPanelCloseButton {
+    display: grid;
+    place-items: center;
+  }
+
+  .calendarMobileBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2999;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(15, 23, 42, 0.44);
+    display: block;
+    cursor: pointer;
+  }
+}

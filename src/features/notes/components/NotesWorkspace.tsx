@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import NotesEditorCanvas from "./NotesEditorCanvas";
 import NotesLeftPanel from "./NotesLeftPanel";
 import NotesRightPanel from "./NotesRightPanel";
@@ -36,6 +37,7 @@ type MenuActionIcon = "download" | "rename" | "small" | "regular" | "card" | "de
 const CARD_BLOCK_TYPE = "card";
 const PARAGRAPH_BLOCK_TYPE = "paragraph";
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const NOTES_CALENDAR_DRAFT_STORAGE_KEY = "notes_calendar_document_draft";
 
 function createPageId() {
   return `page-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -396,6 +398,7 @@ function createExcelLikeTable(rows: number, cols: number, onTableMutation?: () =
 }
 
 export default function NotesWorkspace() {
+  const searchParams = useSearchParams();
   const initialPageId = useMemo(() => createPageId(), []);
 
   const [activeLeftToolId, setActiveLeftToolId] = useState(NOTES_LEFT_TOOLS[0].id);
@@ -421,6 +424,7 @@ export default function NotesWorkspace() {
   const objectUrlsRef = useRef<string[]>([]);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const hasAppliedCalendarDraftRef = useRef(false);
 
   const pageTitle = useMemo(() => {
     const trimmed = title.trim();
@@ -1196,6 +1200,96 @@ export default function NotesWorkspace() {
       document.removeEventListener("click", onDocumentClick);
     };
   }, [closeAttachmentMenus]);
+
+  useEffect(() => {
+    if (hasAppliedCalendarDraftRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const source = searchParams.get("source");
+    const entryType = searchParams.get("entry");
+
+    if (source !== "calendar" || entryType !== "document") {
+      hasAppliedCalendarDraftRef.current = true;
+      return;
+    }
+
+    const rawDraft = window.sessionStorage.getItem(NOTES_CALENDAR_DRAFT_STORAGE_KEY);
+    if (!rawDraft) {
+      hasAppliedCalendarDraftRef.current = true;
+      return;
+    }
+
+    const editor = editorRefs.current[pageIds[0]];
+    if (!editor) {
+      return;
+    }
+
+    try {
+      const parsedDraft = JSON.parse(rawDraft) as {
+        title?: unknown;
+        body?: unknown;
+        label?: unknown;
+        dateKey?: unknown;
+      };
+
+      const draftTitle =
+        typeof parsedDraft.title === "string" ? parsedDraft.title.trim() : "";
+      const draftBody =
+        typeof parsedDraft.body === "string" ? parsedDraft.body.trim() : "";
+      const draftLabel =
+        typeof parsedDraft.label === "string" ? parsedDraft.label.trim() : "Dokumen";
+      const draftDateKey =
+        typeof parsedDraft.dateKey === "string" ? parsedDraft.dateKey.trim() : "";
+
+      if (draftTitle) {
+        setTitle(draftTitle);
+      }
+
+      if (editor.innerText.trim().length === 0) {
+        const metadataCard = document.createElement("div");
+        metadataCard.className = styles.cardBlock;
+        metadataCard.dataset.noteBlock = CARD_BLOCK_TYPE;
+
+        const metadataTitle = document.createElement("p");
+        metadataTitle.className = styles.editorBlockLabel;
+        metadataTitle.textContent = `Dokumen dari Calendar • ${draftLabel || "Dokumen"}`;
+
+        const metadataBody = document.createElement("p");
+        metadataBody.className = styles.editorBlockHelper;
+        metadataBody.textContent = draftDateKey
+          ? `Tanggal referensi kalender: ${draftDateKey}`
+          : "Draft dibuat dari menu Calendar.";
+
+        metadataCard.append(metadataTitle, metadataBody);
+        editor.appendChild(metadataCard);
+
+        if (draftBody) {
+          const paragraph = createEmptyParagraph();
+          paragraph.textContent = draftBody;
+          editor.appendChild(paragraph);
+        }
+
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+
+        savedRangesRef.current[pageIds[0]] = range.cloneRange();
+        setActivePageId(pageIds[0]);
+      }
+
+      syncStats();
+    } catch {
+      // No-op: ignore malformed session draft.
+    } finally {
+      window.sessionStorage.removeItem(NOTES_CALENDAR_DRAFT_STORAGE_KEY);
+      hasAppliedCalendarDraftRef.current = true;
+    }
+  }, [pageIds, searchParams, syncStats]);
 
   useEffect(() => {
     const pendingFocusPageId = pendingFocusPageIdRef.current;
