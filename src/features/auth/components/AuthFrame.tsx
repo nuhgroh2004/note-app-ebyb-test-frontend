@@ -35,13 +35,6 @@ export default function AuthFrame({ title, copy, children }: AuthFrameProps) {
           <span className={`${styles.shellCloud} ${styles.shellCloudFour}`} />
         </div>
 
-        <Link href="/" className={styles.floatingBadge} aria-label="Go to home">
-          <span className={styles.badgeIcon}>
-            <span className={styles.badgeSliceA} />
-            <span className={styles.badgeSliceB} />
-          </span>
-        </Link>
-
         <section className={styles.formPane}>
           <h1 className={styles.formHeading}>{title}</h1>
           <p className={styles.formSubheading}>{copy}</p>

@@ -58,9 +58,9 @@ export default function RegisterUiForm() {
       saveAuthSession(result);
       setStatus({
         variant: "success",
-        message: "Registrasi berhasil. Mengalihkan ke halaman notes.",
+        message: "Registrasi berhasil. Mengalihkan ke dashboard.",
       });
-      router.push("/notes");
+      router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Register gagal";
 

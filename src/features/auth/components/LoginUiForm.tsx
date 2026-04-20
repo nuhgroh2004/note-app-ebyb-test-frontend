@@ -56,9 +56,9 @@ export default function LoginUiForm() {
       saveAuthSession(result);
       setStatus({
         variant: "success",
-        message: "Login berhasil. Mengalihkan ke halaman notes.",
+        message: "Login berhasil. Mengalihkan ke dashboard.",
       });
-      router.push("/notes");
+      router.push("/dashboard");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login gagal";
 

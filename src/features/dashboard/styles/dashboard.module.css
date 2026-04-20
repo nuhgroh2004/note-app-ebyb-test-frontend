@@ -1,0 +1,454 @@
+.dashboardPage {
+  --dash-bg-tertiary: #eceeef;
+  --dash-bg-secondary: #f5f6f7;
+  --dash-bg-primary: #ffffff;
+  --dash-border-tertiary: rgba(31, 39, 51, 0.12);
+  --dash-border-secondary: rgba(31, 39, 51, 0.22);
+  --dash-text-primary: #1f2733;
+  --dash-text-secondary: #4d5a6a;
+  --dash-text-tertiary: #7b8696;
+  min-height: 100vh;
+  padding: 0;
+  background:
+    radial-gradient(circle at 15% 12%, rgba(255, 255, 255, 0.78), transparent 36%),
+    radial-gradient(circle at 88% 4%, rgba(215, 224, 233, 0.9), transparent 34%),
+    linear-gradient(180deg, #e7ebef 0%, #dce2e9 100%);
+}
+
+.dashboardShell {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: 0;
+  border: none;
+  background: var(--dash-bg-tertiary);
+  box-shadow: none;
+}
+
+.sidebar {
+  width: 240px;
+  background: var(--dash-bg-secondary);
+  border-right: 0.5px solid var(--dash-border-tertiary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebarHeaderWrap {
+  position: relative;
+}
+
+.sidebarHeader {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 0.5px solid var(--dash-border-tertiary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebarHeader:hover {
+  background: var(--dash-bg-primary);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: #2d6a4f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.spaceName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+  flex: 1;
+}
+
+.chevronIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--dash-text-tertiary);
+}
+
+.sidebarHeaderMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 12px;
+  right: 12px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  border-radius: 10px;
+  background: var(--dash-bg-primary);
+  box-shadow: 0 8px 16px rgba(10, 19, 35, 0.15);
+  padding: 6px;
+  z-index: 15;
+  display: none;
+}
+
+.sidebarHeaderMenuOpen {
+  display: block;
+}
+
+.sidebarHeaderMenuItem {
+  width: 100%;
+  min-height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--dash-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebarHeaderMenuItem:hover {
+  background: var(--dash-bg-secondary);
+}
+
+.newDocumentWrap {
+  padding: 8px;
+}
+
+.newDocumentButton {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.newDocumentButton:hover {
+  background: var(--dash-bg-primary);
+}
+
+.sidebarNav {
+  display: grid;
+  gap: 2px;
+  padding: 2px 8px 0;
+}
+
+.navItem {
+  border: none;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  min-height: 34px;
+  border-radius: 10px;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.navItem:hover {
+  background: var(--dash-bg-primary);
+}
+
+.navItemActive {
+  background: var(--dash-bg-primary);
+  color: var(--dash-text-primary);
+  font-weight: 600;
+}
+
+.navIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.navLabel {
+  white-space: nowrap;
+}
+
+.mainPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--dash-bg-primary);
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.searchBar {
+  width: min(560px, calc(100% - 96px));
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--dash-border-secondary);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 14px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.searchInput {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dash-text-primary);
+  font-size: 14px;
+}
+
+.searchInput::placeholder {
+  color: var(--dash-text-tertiary);
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.bellIcon {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  color: var(--dash-text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.bellIcon:hover {
+  background: var(--dash-bg-secondary);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.pageTitle {
+  margin: 0 0 22px;
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.docGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.docCard {
+  border-radius: 16px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-primary);
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 3 / 4;
+  overflow: visible;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.16s ease;
+}
+
+.docCard:hover {
+  border-color: var(--dash-border-secondary);
+}
+
+.docCardBody {
+  flex: 1;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(31, 39, 51, 0.12),
+    inset 0 -22px 30px rgba(31, 39, 51, 0.08),
+    0 8px 20px rgba(31, 39, 51, 0.06);
+}
+
+.docCardFooter {
+  padding: 10px 12px;
+}
+
+.docCardTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.docCardDate {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--dash-text-tertiary);
+}
+
+.cardMenuButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-primary);
+  color: var(--dash-text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.docCard:hover .cardMenuButton,
+.cardMenuButtonActive {
+  opacity: 1;
+}
+
+.cardMenuButtonActive {
+  background: var(--dash-bg-secondary);
+}
+
+.contextMenu {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  min-width: 172px;
+  border-radius: 12px;
+  border: 0.5px solid var(--dash-border-tertiary);
+  background: var(--dash-bg-primary);
+  box-shadow: 0 8px 18px rgba(10, 19, 35, 0.14);
+  padding: 6px;
+  z-index: 20;
+  display: none;
+}
+
+.contextMenuShow {
+  display: block;
+}
+
+.menuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--dash-text-primary);
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--dash-bg-secondary);
+}
+
+.menuItemDanger {
+  color: #c5512d;
+}
+
+.menuDivider {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--dash-border-tertiary);
+  margin: 4px 0;
+}
+
+.emptyState {
+  margin: 0;
+  border: 1px dashed var(--dash-border-secondary);
+  border-radius: 14px;
+  padding: 20px;
+  color: var(--dash-text-secondary);
+  background: rgba(245, 246, 247, 0.7);
+}
+
+@media (max-width: 980px) {
+  .dashboardPage {
+    padding: 0;
+  }
+
+  .dashboardShell {
+    width: 100%;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .sidebar {
+    width: 84px;
+  }
+
+  .sidebarHeader,
+  .newDocumentButton,
+  .navItem {
+    justify-content: center;
+  }
+
+  .spaceName,
+  .chevronIcon,
+  .navLabel {
+    display: none;
+  }
+
+  .sidebarHeaderMenu {
+    left: 8px;
+    right: 8px;
+  }
+
+  .content {
+    padding: 20px;
+  }
+
+  .topbar {
+    justify-content: space-between;
+    padding: 0 14px;
+    position: static;
+  }
+
+  .searchBar {
+    position: static;
+    left: auto;
+    transform: none;
+    width: 100%;
+  }
+}

@@ -66,7 +66,7 @@ export default function HeroSection({ heroReady }: HeroSectionProps) {
             transition={{ duration: 0.9, delay: 0.48, ease: [0.22, 1, 0.36, 1] }}
           >
             <Link href="/register" className="waitlist-btn solid">
-              Continue on web
+              Register
             </Link>
             <Link href="/login" className="waitlist-btn outline">
               Log in

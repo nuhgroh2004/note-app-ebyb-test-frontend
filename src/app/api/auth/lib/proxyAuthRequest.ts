@@ -24,7 +24,7 @@ function resolveBackendApiUrl(request: Request) {
     throw new Error("BACKEND_API_URL is required for non-local environments");
   }
 
-  const fallbackPort = requestUrl.port === "3000" ? "3001" : "3000";
+  const fallbackPort = requestUrl.port === "4000" ? "3000" : "4000";
   return `${requestUrl.protocol}//${requestUrl.hostname}:${fallbackPort}`;
 }
 
@@ -53,7 +53,7 @@ export async function proxyAuthRequest(request: Request, endpoint: AuthEndpoint)
     return NextResponse.json(
       {
         message:
-          "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:3001",
+          "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:4000",
       },
       { status: 500 }
     );

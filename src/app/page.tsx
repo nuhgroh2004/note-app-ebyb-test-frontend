@@ -1,27 +1,33 @@
 "use client";
 
 import Lenis from "lenis";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import CapabilitiesSection from "@/components/landing/CapabilitiesSection";
-import CalloutSection from "@/components/landing/CalloutSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import FooterSection from "@/components/landing/FooterSection";
-import FaqSection from "@/components/landing/FaqSection";
 import HeroSection from "@/components/landing/HeroSection";
 import HighlightsSection from "@/components/landing/HighlightsSection";
-import ProfileIntroSection from "@/components/landing/ProfileIntroSection";
 import TopNav from "@/components/landing/TopNav";
+import { readAuthToken } from "@/features/auth/lib/authSession";
 import {
   capabilityPanels,
-  faqItems,
   featureCards,
   quickPoints,
 } from "@/components/landing/content";
 
 export default function Home() {
+  const router = useRouter();
   const [heroReady] = useState(true);
 
   useEffect(() => {
+    const token = readAuthToken();
+
+    if (token) {
+      router.replace("/dashboard");
+      return;
+    }
+
     const lenis = new Lenis({
       duration: 1.1,
       smoothWheel: true,
@@ -41,18 +47,15 @@ export default function Home() {
       cancelAnimationFrame(frame);
       lenis.destroy();
     };
-  }, []);
+  }, [router]);
 
   return (
     <div className="craft-page">
       <TopNav />
       <HeroSection heroReady={heroReady} />
-      <ProfileIntroSection />
       <HighlightsSection items={quickPoints} />
       <FeaturesSection cards={featureCards} />
       <CapabilitiesSection items={capabilityPanels} />
-      <CalloutSection />
-      <FaqSection items={faqItems} />
       <FooterSection />
     </div>
   );
