@@ -28,5 +28,10 @@ Tahap UI saat ini:
 Tambahkan file .env.local di root frontend:
 
 ```env
-BACKEND_API_URL=http://localhost:3000
+BACKEND_API_URL=http://localhost:3001
 ```
+
+Catatan penting:
+- `BACKEND_API_URL` harus menunjuk ke server backend Express, bukan ke server frontend Next.js.
+- Jika frontend berjalan di `http://localhost:3000`, jalankan backend di port lain (contoh `http://localhost:3001`).
+- Jika frontend berjalan di `http://localhost:3001`, backend bisa tetap di `http://localhost:3000`.
