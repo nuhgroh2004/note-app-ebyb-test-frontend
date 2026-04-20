@@ -88,10 +88,14 @@ export default function DashboardSidebar({
       </div>
 
       <div className={styles.newDocumentWrap}>
-        <button type="button" className={styles.newDocumentButton}>
+        <Link
+          href="/notes"
+          className={styles.newDocumentButton}
+          onClick={() => setIsHeaderMenuOpen(false)}
+        >
           <DashboardIcon name="grid" className={styles.navIcon} />
           <span className={styles.navLabel}>New Document</span>
-        </button>
+        </Link>
       </div>
 
       <nav className={styles.sidebarNav} aria-label="Dashboard navigation">
