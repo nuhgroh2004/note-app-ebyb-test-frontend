@@ -426,6 +426,19 @@
 }
 
 @media (max-width: 620px) {
+  .authPage {
+    min-height: 100dvh;
+    padding: 1.2rem 0.8rem;
+  }
+
+  .skyClouds {
+    inset: -32px -18px -24px;
+  }
+
+  .cloud {
+    height: 112px;
+  }
+
   .authShell {
     width: min(610px, 100%);
     border-radius: 28px;
@@ -433,18 +446,74 @@
   }
 
   .cloudOne {
-    left: -190px;
+    width: 288px;
+    left: -136px;
+    top: 58%;
   }
 
   .cloudTwo {
-    right: -120px;
+    width: 238px;
+    right: -112px;
+    top: 34%;
   }
 
   .cloudThree {
-    right: -220px;
+    width: 306px;
+    right: -162px;
+    top: 76%;
+  }
+
+  .cloudFour {
+    width: 182px;
+    left: 4%;
+    top: 20%;
+  }
+
+  .cloudFive {
+    width: 158px;
+    right: 18%;
+    top: 18%;
+  }
+
+  .cloudSix {
+    width: 224px;
+    left: -132px;
+    top: 28%;
+  }
+
+  .cloudSeven {
+    width: 212px;
+    right: -112px;
+    top: 56%;
   }
 
   .cloudEight {
-    left: 14%;
+    width: 150px;
+    left: 32%;
+    top: 70%;
+  }
+
+  .shellCloudOne {
+    width: 176px;
+    left: -54px;
+    top: 34%;
+  }
+
+  .shellCloudTwo {
+    width: 148px;
+    right: -56px;
+    top: 24%;
+  }
+
+  .shellCloudThree {
+    width: 160px;
+    left: 16%;
+    bottom: 16%;
+  }
+
+  .shellCloudFour {
+    width: 132px;
+    right: 12%;
+    bottom: 28%;
   }
 }

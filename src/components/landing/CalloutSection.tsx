@@ -15,7 +15,7 @@ const THEME_PRESETS = [
 export default function CalloutSection() {
   return (
     <section className="customize-section" id="customize">
-      <div className="shell customize-shell">
+      <div className="customize-wrap">
         <Reveal className="customize-head">
           <p className="section-kicker">Customization</p>
           <h2>Make your workspace unmistakably yours</h2>

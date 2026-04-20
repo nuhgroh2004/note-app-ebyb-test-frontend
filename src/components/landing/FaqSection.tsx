@@ -10,8 +10,8 @@ type FaqSectionProps = {
 
 export default function FaqSection({ items }: FaqSectionProps) {
   return (
-    <section className="pricing-section" id="pricing">
-      <div className="shell pricing-shell">
+    <section className="pricing-area" id="pricing">
+      <div className="pricing-wrap">
         <Reveal className="pricing-head">
           <p className="section-kicker">Your pace, your plan</p>
           <h2 className="section-title dark-text">

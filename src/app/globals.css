@@ -723,7 +723,9 @@ a {
   padding: 2rem 0 5rem;
 }
 
-.customize-shell {
+.customize-wrap {
+  width: min(1200px, 100% - 2.4rem);
+  margin-inline: auto;
   border-radius: var(--radius-xl);
   padding: 1.6rem;
   background: rgba(12, 41, 76, 0.92);
@@ -732,7 +734,7 @@ a {
   position: relative;
 }
 
-.customize-shell::before {
+.customize-wrap::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -817,8 +819,13 @@ a {
   background: linear-gradient(140deg, #a7d8ff, #7fc2ff);
 }
 
-.pricing-section {
+.pricing-area {
   padding: 2rem 0 5.3rem;
+}
+
+.pricing-wrap {
+  width: min(1200px, 100% - 2.4rem);
+  margin-inline: auto;
 }
 
 .pricing-grid {
@@ -1001,6 +1008,11 @@ a {
     width: min(1200px, 100% - 1.3rem);
   }
 
+  .customize-wrap,
+  .pricing-wrap {
+    width: min(1200px, 100% - 1.3rem);
+  }
+
   .top-nav {
     width: calc(100% - 1rem);
   }
@@ -1013,10 +1025,69 @@ a {
     font-size: clamp(2.3rem, 12vw, 3.6rem);
   }
 
+  .section-title {
+    font-size: clamp(1.9rem, 9vw, 2.7rem);
+    line-height: 1.06;
+  }
+
+  .big-title {
+    font-size: clamp(2rem, 10vw, 3rem);
+    line-height: 1;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 7.2rem 0 3.6rem;
+  }
+
+  .hero-shell {
+    gap: 1.2rem;
+  }
+
   .hero-actions,
   .footer-top-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .product-section,
+  .persona-section,
+  .workflow-section,
+  .structure-section,
+  .customize-section,
+  .pricing-area {
+    padding: 1.45rem 0 3rem;
+  }
+
+  .workflow-shell,
+  .customize-wrap,
+  .footer-shell {
+    border-radius: 20px;
+    padding: 1rem;
+  }
+
+  .hero-mock,
+  .product-card,
+  .persona-card,
+  .structure-card,
+  .pricing-card {
+    min-height: auto;
+  }
+
+  .hero-mock-main {
+    width: 100%;
+  }
+
+  .workflow-preview img {
+    height: 240px;
+  }
+
+  .theme-card {
+    min-height: 124px;
+  }
+
+  .pricing-card .waitlist-btn {
+    width: 100%;
   }
 
   .product-grid,
@@ -1040,5 +1111,32 @@ a {
   .footer-bottom {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-nav-wrap {
+    top: 10px;
+  }
+
+  .hero {
+    padding-top: 6.8rem;
+  }
+
+  .hero-pill-row span {
+    font-size: 0.72rem;
+  }
+
+  .workflow-tabs button {
+    border-radius: 14px;
+    padding: 0.76rem 0.78rem;
+  }
+
+  .workflow-tabs button h3 {
+    font-size: 0.96rem;
+  }
+
+  .footer-top h2 {
+    font-size: clamp(1.9rem, 12vw, 2.6rem);
   }
 }
