@@ -3,12 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import {
+  createNote,
+  deleteNote,
+  listNotes,
+  updateNote,
+  type NoteItem,
+} from "@/features/notes/lib/notesApi";
 import CalendarGrid from "./CalendarGrid";
 import {
   CALENDAR_COLOR_OPTIONS,
   CALENDAR_DOCUMENT_DRAFT_STORAGE_KEY,
-  CALENDAR_ENTRIES_STORAGE_KEY,
-  CALENDAR_INITIAL_ENTRIES,
   CALENDAR_LABEL_OPTIONS,
   CALENDAR_MONTH_NAMES,
   type CalendarEntriesByDate,
@@ -22,7 +27,6 @@ import {
   getDateCountLabel,
   getTodayDateKey,
   parseDateKey,
-  parseStoredCalendarEntries,
 } from "../lib/calendarUtils";
 import styles from "../styles/calendar.module.css";
 
@@ -73,18 +77,70 @@ const swalWithBootstrapButtons = Swal.mixin({
   buttonsStyling: false,
 });
 
-function cloneCalendarEntries(entriesByDate: CalendarEntriesByDate) {
-  const clone: CalendarEntriesByDate = {};
-
-  Object.entries(entriesByDate).forEach(([dateKey, entries]) => {
-    clone[dateKey] = entries.map((entry) => ({ ...entry }));
-  });
-
-  return clone;
+function toDateNumberString(value: number) {
+  return String(value).padStart(2, "0");
 }
 
-function createEntryId() {
-  return `entry-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+function toDateKeyFromIso(isoString: string) {
+  const parsedDate = new Date(isoString);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return getTodayDateKey();
+  }
+
+  return `${parsedDate.getUTCFullYear()}-${toDateNumberString(parsedDate.getUTCMonth() + 1)}-${
+    toDateNumberString(parsedDate.getUTCDate())
+  }`;
+}
+
+function getMonthDateRange(year: number, monthIndex: number) {
+  const monthNumber = monthIndex + 1;
+  const month = toDateNumberString(monthNumber);
+  const startDate = `${year}-${month}-01`;
+  const endDate = `${year}-${month}-${toDateNumberString(new Date(year, monthNumber, 0).getDate())}`;
+
+  return {
+    startDate,
+    endDate,
+  };
+}
+
+function normalizeCalendarColor(color: string | null): CalendarEntryColor {
+  if (color === "green" || color === "blue" || color === "purple" || color === "amber" || color === "red") {
+    return color;
+  }
+
+  return "blue";
+}
+
+function mapNoteToCalendarEntry(note: NoteItem): CalendarEntry {
+  return {
+    id: note.id,
+    type: note.entryType === "document" ? "document" : "note",
+    title: note.title,
+    body: note.content,
+    label: note.label || (note.entryType === "document" ? "Dokumen" : "Kerja"),
+    color: normalizeCalendarColor(note.color),
+    time: note.time || "",
+    createdAt: note.createdAt,
+  };
+}
+
+function buildEntriesByDate(items: NoteItem[]) {
+  const entriesByDate: CalendarEntriesByDate = {};
+
+  items.forEach((note) => {
+    const dateKey = toDateKeyFromIso(note.noteDate);
+    const mappedEntry = mapNoteToCalendarEntry(note);
+
+    if (!entriesByDate[dateKey]) {
+      entriesByDate[dateKey] = [];
+    }
+
+    entriesByDate[dateKey].push(mappedEntry);
+  });
+
+  return entriesByDate;
 }
 
 function toDisplayTime(timeValue: string) {
@@ -103,39 +159,18 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   const [calendarYear, setCalendarYear] = useState(parsedToday?.year ?? 2026);
   const [calendarMonthIndex, setCalendarMonthIndex] = useState(parsedToday?.monthIndex ?? 3);
   const [selectedDateKey, setSelectedDateKey] = useState(todayDateKey);
-  const [entriesByDate, setEntriesByDate] = useState<CalendarEntriesByDate>(() => {
-    if (typeof window === "undefined") {
-      return cloneCalendarEntries(CALENDAR_INITIAL_ENTRIES);
-    }
+  const [entriesByDate, setEntriesByDate] = useState<CalendarEntriesByDate>({});
+  const [isEntriesLoading, setIsEntriesLoading] = useState(false);
+  const [entriesError, setEntriesError] = useState("");
+  const [reloadEntriesKey, setReloadEntriesKey] = useState(0);
 
-    try {
-      const parsedStorageData = parseStoredCalendarEntries(
-        window.localStorage.getItem(CALENDAR_ENTRIES_STORAGE_KEY),
-      );
-
-      if (parsedStorageData !== null) {
-        return parsedStorageData;
-      }
-    } catch {
-      // No-op: fallback to seeded entries.
-    }
-
-    return cloneCalendarEntries(CALENDAR_INITIAL_ENTRIES);
-  });
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSavingEntry, setIsSavingEntry] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [formState, setFormState] = useState<CalendarFormState>(NOTE_FORM_DEFAULTS);
   const [formError, setFormError] = useState("");
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(CALENDAR_ENTRIES_STORAGE_KEY, JSON.stringify(entriesByDate));
-  }, [entriesByDate]);
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -174,34 +209,75 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
     [calendarMonthIndex, calendarYear],
   );
 
+  const normalizedSearch = useMemo(() => searchValue.trim(), [searchValue]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const debounceId = window.setTimeout(async () => {
+      setIsEntriesLoading(true);
+      setEntriesError("");
+
+      const { startDate, endDate } = getMonthDateRange(calendarYear, calendarMonthIndex);
+
+      try {
+        const result = await listNotes({
+          page: 1,
+          limit: 500,
+          startDate,
+          endDate,
+          search: normalizedSearch || undefined,
+          sort: "noteDateAsc",
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setEntriesByDate(buildEntriesByDate(result.items));
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        const message =
+          error instanceof Error ? error.message : "Gagal memuat data kalender dari server.";
+        setEntriesByDate({});
+        setEntriesError(message);
+      } finally {
+        if (!cancelled) {
+          setIsEntriesLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(debounceId);
+    };
+  }, [calendarMonthIndex, calendarYear, normalizedSearch, reloadEntriesKey]);
+
   const cells = useMemo(
     () => buildCalendarCells(calendarYear, calendarMonthIndex, entriesByDate),
     [calendarYear, calendarMonthIndex, entriesByDate],
   );
 
   const selectedEntries = useMemo(() => entriesByDate[selectedDateKey] ?? [], [entriesByDate, selectedDateKey]);
-  const normalizedSearch = useMemo(() => searchValue.trim().toLowerCase(), [searchValue]);
-
-  const visibleEntries = useMemo(() => {
-    if (!normalizedSearch) {
-      return selectedEntries;
+  const selectedDateLabel = useMemo(() => formatCalendarDateLabel(selectedDateKey), [selectedDateKey]);
+  const selectedDateCountLabel = useMemo(() => {
+    if (isEntriesLoading) {
+      return "Memuat data...";
     }
 
-    return selectedEntries.filter((entry) => {
-      const normalizedEntry = `${entry.title} ${entry.body} ${entry.label}`.toLowerCase();
-      return normalizedEntry.includes(normalizedSearch);
-    });
-  }, [normalizedSearch, selectedEntries]);
+    if (entriesError) {
+      return entriesError;
+    }
 
-  const selectedDateLabel = useMemo(() => formatCalendarDateLabel(selectedDateKey), [selectedDateKey]);
-
-  const selectedDateCountLabel = useMemo(() => {
     if (!normalizedSearch) {
       return getDateCountLabel(selectedEntries.length);
     }
 
-    return `${visibleEntries.length} hasil dari ${selectedEntries.length} item`;
-  }, [normalizedSearch, selectedEntries.length, visibleEntries.length]);
+    return `${selectedEntries.length} item sesuai pencarian`;
+  }, [entriesError, isEntriesLoading, normalizedSearch, selectedEntries.length]);
 
   const isEditingEntry = editingEntryId !== null;
 
@@ -212,27 +288,18 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   }
 
   function selectDate(dateKey: string) {
-    const parsedDate = parseDateKey(dateKey);
-    if (parsedDate) {
-      setCalendarYear(parsedDate.year);
-      setCalendarMonthIndex(parsedDate.monthIndex);
-    }
-
     setSelectedDateKey(dateKey);
-    setIsFormOpen(false);
-    setEditingEntryId(null);
-    setFormError("");
 
     if (isMobileViewport) {
       setIsMobilePanelOpen(true);
     }
   }
 
-  function openForm() {
+  function openForm(nextEntryType: CalendarEntryType = "note") {
     setEditingEntryId(null);
-    setFormState(NOTE_FORM_DEFAULTS);
-    setIsFormOpen(true);
     setFormError("");
+    setIsFormOpen(true);
+    setFormState(nextEntryType === "document" ? DOCUMENT_FORM_DEFAULTS : NOTE_FORM_DEFAULTS);
 
     if (isMobileViewport) {
       setIsMobilePanelOpen(true);
@@ -242,18 +309,17 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
   function closeForm() {
     setIsFormOpen(false);
     setEditingEntryId(null);
-    setFormState(NOTE_FORM_DEFAULTS);
     setFormError("");
+    setFormState(NOTE_FORM_DEFAULTS);
   }
 
   function closeMobilePanel() {
     setIsMobilePanelOpen(false);
-    setIsFormOpen(false);
-    setEditingEntryId(null);
+    closeForm();
   }
 
   function switchEntryType(nextType: CalendarEntryType) {
-    if (editingEntryId) {
+    if (isEditingEntry) {
       return;
     }
 
@@ -297,11 +363,12 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
         dateKey: selectedDateKey,
         source: "calendar",
         createdAt: entry.createdAt,
+        noteId: entry.id,
       }),
     );
   }
 
-  function saveEntry() {
+  async function saveEntry() {
     const trimmedTitle = formState.title.trim();
 
     if (!trimmedTitle) {
@@ -309,70 +376,50 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
       return;
     }
 
-    if (editingEntryId) {
-      setEntriesByDate((currentEntriesByDate) => {
-        const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
-
-        return {
-          ...currentEntriesByDate,
-          [selectedDateKey]: currentEntries.map((entry) => {
-            if (entry.id !== editingEntryId || entry.type !== "note") {
-              return entry;
-            }
-
-            return {
-              ...entry,
-              title: trimmedTitle,
-              body: formState.body.trim(),
-              label: formState.label,
-              color: formState.color,
-              time: formState.time,
-            };
-          }),
-        };
-      });
-
-      setFormState(NOTE_FORM_DEFAULTS);
-      setEditingEntryId(null);
-      setIsFormOpen(false);
-      setFormError("");
-      return;
-    }
-
-    const nextEntry: CalendarEntry = {
-      id: createEntryId(),
-      type: formState.entryType,
-      title: trimmedTitle,
-      body: formState.entryType === "document" ? "" : formState.body.trim(),
-      label: formState.entryType === "document" ? "Dokumen" : formState.label,
-      color: formState.entryType === "document" ? "blue" : formState.color,
-      time: formState.entryType === "document" ? "" : formState.time,
-      createdAt: new Date().toISOString(),
-    };
-
-    setEntriesByDate((currentEntriesByDate) => {
-      const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
-      return {
-        ...currentEntriesByDate,
-        [selectedDateKey]: [...currentEntries, nextEntry],
-      };
-    });
-
-    if (nextEntry.type === "document") {
-      saveDocumentDraftToSession(nextEntry);
-      setFormState(DOCUMENT_FORM_DEFAULTS);
-      setIsFormOpen(false);
-      setFormError("");
-      router.push("/notes?source=calendar&entry=document");
-      return;
-    }
-
-    setFormState(NOTE_FORM_DEFAULTS);
-    setIsFormOpen(false);
+    setIsSavingEntry(true);
     setFormError("");
+
+    try {
+      const payload = {
+        title: trimmedTitle,
+        content: formState.entryType === "document" ? "" : formState.body.trim(),
+        noteDate: selectedDateKey,
+        entryType: formState.entryType,
+        label: formState.entryType === "document" ? "Dokumen" : formState.label,
+        color: formState.entryType === "document" ? "blue" : formState.color,
+        time: formState.entryType === "document" ? "" : formState.time,
+        location: "All Docs",
+      } as const;
+
+      if (editingEntryId) {
+        await updateNote(editingEntryId, payload);
+        closeForm();
+        setReloadEntriesKey((current) => current + 1);
+        return;
+      }
+
+      const createdNote = await createNote(payload);
+      setReloadEntriesKey((current) => current + 1);
+
+      if (createdNote.entryType === "document") {
+        const createdEntry = mapNoteToCalendarEntry(createdNote);
+        saveDocumentDraftToSession(createdEntry);
+        setIsFormOpen(false);
+        setFormState(DOCUMENT_FORM_DEFAULTS);
+        router.push(`/notes?source=calendar&entry=document&noteId=${createdEntry.id}`);
+        return;
+      }
+
+      closeForm();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menyimpan item kalender.";
+      setFormError(message);
+    } finally {
+      setIsSavingEntry(false);
+    }
   }
 
-  async function deleteEntry(entryId: string) {
+  async function deleteEntry(entryId: number) {
     const confirmation = await swalWithBootstrapButtons.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -383,37 +430,28 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
       reverseButtons: true,
     });
 
-    if (confirmation.isConfirmed) {
-      setEntriesByDate((currentEntriesByDate) => {
-        const currentEntries = currentEntriesByDate[selectedDateKey] ?? [];
-        const nextEntries = currentEntries.filter((entry) => entry.id !== entryId);
+    if (!confirmation.isConfirmed) {
+      if (confirmation.dismiss === Swal.DismissReason.cancel) {
+        await swalWithBootstrapButtons.fire({
+          title: "Cancelled",
+          text: "Your imaginary file is safe :)",
+          icon: "error",
+        });
+      }
+      return;
+    }
 
-        if (nextEntries.length === 0) {
-          const remainingEntries = { ...currentEntriesByDate };
-          delete remainingEntries[selectedDateKey];
-          return remainingEntries;
-        }
-
-        return {
-          ...currentEntriesByDate,
-          [selectedDateKey]: nextEntries,
-        };
-      });
-
+    try {
+      await deleteNote(entryId);
+      setReloadEntriesKey((current) => current + 1);
       await swalWithBootstrapButtons.fire({
         title: "Deleted!",
         text: "Your file has been deleted.",
         icon: "success",
       });
-      return;
-    }
-
-    if (confirmation.dismiss === Swal.DismissReason.cancel) {
-      await swalWithBootstrapButtons.fire({
-        title: "Cancelled",
-        text: "Your imaginary file is safe :)",
-        icon: "error",
-      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal menghapus item dari server.";
+      setFormError(message);
     }
   }
 
@@ -423,15 +461,24 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
     }
 
     saveDocumentDraftToSession(entry);
-    router.push("/notes?source=calendar&entry=document");
+    router.push(`/notes?source=calendar&entry=document&noteId=${entry.id}`);
   }
 
   return (
-    <section className={styles.calendarContent}>
+    <div className={styles.calendarContent}>
+      {isMobileViewport && isMobilePanelOpen ? (
+        <button
+          type="button"
+          className={styles.calendarMobileBackdrop}
+          onClick={closeMobilePanel}
+          aria-label="Tutup panel agenda"
+        />
+      ) : null}
+
       <div className={styles.calendarLayout}>
         <section className={styles.calendarMain}>
           <header className={styles.calendarHeader}>
-            <h1 className={styles.calendarPageTitle}>Calendar</h1>
+            <h2 className={styles.calendarPageTitle}>Calendar</h2>
 
             <div className={styles.calendarMonthControl}>
               <button
@@ -440,7 +487,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                 onClick={() => changeMonth(-1)}
                 aria-label="Bulan sebelumnya"
               >
-                {"<"}
+                &#8249;
               </button>
 
               <p className={styles.calendarMonthLabel}>{monthLabel}</p>
@@ -451,7 +498,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                 onClick={() => changeMonth(1)}
                 aria-label="Bulan berikutnya"
               >
-                {">"}
+                &#8250;
               </button>
             </div>
           </header>
@@ -461,39 +508,43 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
 
         <aside
           className={`${styles.calendarPanel} ${
-            isMobilePanelOpen ? styles.calendarPanelMobileOpen : ""
+            isMobileViewport && isMobilePanelOpen ? styles.calendarPanelMobileOpen : ""
           }`}
         >
-          <header className={styles.calendarPanelHeader}>
+          <div className={styles.calendarPanelHeader}>
             <div className={styles.calendarPanelHeaderTop}>
-              <p className={styles.calendarPanelDate}>{selectedDateLabel}</p>
+              <div>
+                <p className={styles.calendarPanelDate}>{selectedDateLabel}</p>
+                <p className={styles.calendarPanelMeta}>{selectedDateCountLabel}</p>
+              </div>
+
               <button
                 type="button"
                 className={styles.calendarPanelCloseButton}
                 onClick={closeMobilePanel}
                 aria-label="Tutup panel"
               >
-                x
+                &#10005;
               </button>
             </div>
-            <p className={styles.calendarPanelMeta}>{selectedDateCountLabel}</p>
-          </header>
+          </div>
 
           {!isFormOpen ? (
-            <button type="button" className={styles.calendarAddButton} onClick={openForm}>
-              + Tambah catatan / dokumen
+            <button type="button" className={styles.calendarAddButton} onClick={() => openForm("note")}>
+              + Tambah item
             </button>
           ) : (
             <div className={styles.calendarFormWrap}>
               <div className={styles.calendarFormHeader}>
                 <p className={styles.calendarFormTitle}>{isEditingEntry ? "Edit catatan" : "Item baru"}</p>
+
                 <button
                   type="button"
                   className={styles.calendarFormClose}
                   onClick={closeForm}
                   aria-label="Tutup form"
                 >
-                  x
+                  &#215;
                 </button>
               </div>
 
@@ -508,6 +559,7 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                 >
                   Catatan
                 </button>
+
                 <button
                   type="button"
                   className={`${styles.calendarTypeButton} ${
@@ -525,36 +577,31 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                 <input
                   type="text"
                   className={styles.calendarFieldInput}
-                  placeholder={
-                    formState.entryType === "document"
-                      ? "Judul dokumen..."
-                      : "Nama catatan..."
-                  }
                   value={formState.title}
                   onChange={(event) => {
-                    setFormError("");
-                    setFormState((currentFormState) => ({
-                      ...currentFormState,
+                    setFormState((current) => ({
+                      ...current,
                       title: event.target.value,
                     }));
                   }}
+                  placeholder="Contoh: Weekly planning"
                 />
               </label>
 
               {formState.entryType === "note" ? (
                 <>
                   <label className={styles.calendarFieldWrap}>
-                    <span className={styles.calendarFieldLabel}>Deskripsi</span>
+                    <span className={styles.calendarFieldLabel}>Isi catatan</span>
                     <textarea
                       className={styles.calendarFieldTextarea}
-                      placeholder="Tulis detail catatan..."
                       value={formState.body}
                       onChange={(event) => {
-                        setFormState((currentFormState) => ({
-                          ...currentFormState,
+                        setFormState((current) => ({
+                          ...current,
                           body: event.target.value,
                         }));
                       }}
+                      placeholder="Tulis detail catatan di sini"
                     />
                   </label>
 
@@ -564,8 +611,8 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                       className={styles.calendarFieldSelect}
                       value={formState.label}
                       onChange={(event) => {
-                        setFormState((currentFormState) => ({
-                          ...currentFormState,
+                        setFormState((current) => ({
+                          ...current,
                           label: event.target.value,
                         }));
                       }}
@@ -578,33 +625,6 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                     </select>
                   </label>
 
-                  <div className={styles.calendarFieldWrap}>
-                    <span className={styles.calendarFieldLabel}>Warna</span>
-                    <div className={styles.calendarColorRow}>
-                      {CALENDAR_COLOR_OPTIONS.map((colorOption) => {
-                        const isActive = colorOption.value === formState.color;
-
-                        return (
-                          <button
-                            key={colorOption.value}
-                            type="button"
-                            aria-label={`Pilih warna ${colorOption.value}`}
-                            className={`${styles.calendarColorButton} ${
-                              isActive ? styles.calendarColorButtonActive : ""
-                            }`}
-                            style={{ backgroundColor: colorOption.hex }}
-                            onClick={() => {
-                              setFormState((currentFormState) => ({
-                                ...currentFormState,
-                                color: colorOption.value,
-                              }));
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   <label className={styles.calendarFieldWrap}>
                     <span className={styles.calendarFieldLabel}>Waktu</span>
                     <input
@@ -612,115 +632,143 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
                       className={styles.calendarFieldInput}
                       value={formState.time}
                       onChange={(event) => {
-                        setFormState((currentFormState) => ({
-                          ...currentFormState,
+                        setFormState((current) => ({
+                          ...current,
                           time: event.target.value,
                         }));
                       }}
                     />
                   </label>
+
+                  <div className={styles.calendarFieldWrap}>
+                    <span className={styles.calendarFieldLabel}>Warna</span>
+                    <div className={styles.calendarColorRow}>
+                      {CALENDAR_COLOR_OPTIONS.map((colorOption) => (
+                        <button
+                          key={colorOption.value}
+                          type="button"
+                          className={`${styles.calendarColorButton} ${
+                            formState.color === colorOption.value ? styles.calendarColorButtonActive : ""
+                          }`}
+                          style={{ background: colorOption.hex }}
+                          onClick={() => {
+                            setFormState((current) => ({
+                              ...current,
+                              color: colorOption.value,
+                            }));
+                          }}
+                          aria-label={`Pilih warna ${colorOption.value}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </>
               ) : (
                 <p className={styles.calendarDocumentHint}>
-                  Dokumen hanya membutuhkan judul, lalu otomatis dibuka di halaman Notes.
+                  Dokumen yang dibuat dari kalender akan otomatis dibuka di halaman Notes agar bisa lanjut ditulis.
                 </p>
               )}
 
               {formError ? <p className={styles.calendarFormError}>{formError}</p> : null}
 
-              <button type="button" className={styles.calendarSaveButton} onClick={saveEntry}>
-                {isEditingEntry
-                  ? "Simpan perubahan"
-                  : formState.entryType === "document"
-                    ? "Simpan & buka Notes"
-                    : "Simpan catatan"}
+              <button
+                type="button"
+                className={styles.calendarSaveButton}
+                onClick={() => {
+                  void saveEntry();
+                }}
+                disabled={isSavingEntry}
+              >
+                {isSavingEntry
+                  ? "Menyimpan..."
+                  : isEditingEntry
+                    ? "Simpan perubahan"
+                    : formState.entryType === "document"
+                      ? "Simpan & buka Notes"
+                      : "Simpan catatan"}
               </button>
             </div>
           )}
 
           <div className={styles.calendarPanelListWrap}>
-            {visibleEntries.length > 0 ? (
+            {isEntriesLoading ? (
+              <p className={styles.calendarEmptyState}>Memuat item kalender...</p>
+            ) : selectedEntries.length > 0 ? (
               <ul className={styles.calendarEntryList}>
-                {visibleEntries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className={`${styles.calendarEntryCard} ${
-                      entry.type === "document" ? styles.calendarEntryCardDocument : ""
-                    }`}
-                  >
-                    <div className={styles.calendarEntryMetaRow}>
-                      {entry.type === "document" ? (
-                        <span className={styles.calendarEntryDocumentTag}>Dokumen</span>
-                      ) : (
-                        <>
+                {selectedEntries.map((entry) => {
+                  const isDocument = entry.type === "document";
+
+                  return (
+                    <li
+                      key={entry.id}
+                      className={`${styles.calendarEntryCard} ${
+                        isDocument ? styles.calendarEntryCardDocument : ""
+                      }`}
+                    >
+                      <div className={styles.calendarEntryMetaRow}>
+                        {isDocument ? (
+                          <span className={styles.calendarEntryDocumentTag}>DOC</span>
+                        ) : (
                           <span
                             className={styles.calendarEntryColorDot}
-                            style={{ backgroundColor: calendarColorHexMap[entry.color] }}
+                            style={{ background: calendarColorHexMap[entry.color] }}
                           />
-                          <span className={styles.calendarEntryLabel}>{entry.label}</span>
-                          {entry.time ? (
-                            <span className={styles.calendarEntryTime}>{toDisplayTime(entry.time)}</span>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
+                        )}
 
-                    <p className={styles.calendarEntryTitle}>{entry.title}</p>
-                    {entry.body ? <p className={styles.calendarEntryBody}>{entry.body}</p> : null}
+                        <span className={styles.calendarEntryLabel}>{entry.label}</span>
 
-                    <div className={styles.calendarEntryActions}>
-                      {entry.type === "document" ? (
+                        {!isDocument && entry.time ? (
+                          <span className={styles.calendarEntryTime}>{toDisplayTime(entry.time)}</span>
+                        ) : null}
+                      </div>
+
+                      <p className={styles.calendarEntryTitle}>{entry.title}</p>
+
+                      {!isDocument && entry.body ? <p className={styles.calendarEntryBody}>{entry.body}</p> : null}
+
+                      <div className={styles.calendarEntryActions}>
+                        {isDocument ? (
+                          <button
+                            type="button"
+                            className={styles.calendarOpenDocumentButton}
+                            onClick={() => openDocumentFromEntry(entry)}
+                          >
+                            Buka Notes
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.calendarEditEntryButton}
+                            onClick={() => startEditNote(entry)}
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        <span className={styles.calendarEntryActionSpacer} />
+
                         <button
                           type="button"
-                          className={styles.calendarOpenDocumentButton}
-                          onClick={() => openDocumentFromEntry(entry)}
+                          className={styles.calendarDeleteEntryButton}
+                          onClick={() => {
+                            void deleteEntry(entry.id);
+                          }}
                         >
-                          Buka Notes
+                          Delete
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.calendarEditEntryButton}
-                          onClick={() => startEditNote(entry)}
-                        >
-                          Edit
-                        </button>
-                      )}
-
-                      <span className={styles.calendarEntryActionSpacer} />
-
-                      <button
-                        type="button"
-                        className={styles.calendarDeleteEntryButton}
-                        onClick={() => {
-                          void deleteEntry(entry.id);
-                        }}
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className={styles.calendarEmptyState}>
-                {normalizedSearch
-                  ? "Tidak ada item yang cocok dengan pencarian pada tanggal ini."
-                  : "Belum ada catatan untuk tanggal yang dipilih."}
+                Belum ada item pada tanggal ini. Tambahkan catatan atau dokumen dari panel di atas.
               </p>
             )}
           </div>
         </aside>
       </div>
-
-      {isMobileViewport && isMobilePanelOpen ? (
-        <button
-          type="button"
-          className={styles.calendarMobileBackdrop}
-          aria-label="Tutup panel kalender"
-          onClick={closeMobilePanel}
-        />
-      ) : null}
-    </section>
+    </div>
   );
 }
