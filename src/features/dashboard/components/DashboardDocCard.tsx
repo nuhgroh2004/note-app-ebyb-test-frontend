@@ -10,7 +10,6 @@ type DashboardDocCardProps = {
   onOpenInNewTab: (doc: DashboardDocItem) => void;
   onToggleStar: (docId: number) => void;
   onDuplicate: (docId: number) => void;
-  onMoveTo: (docId: number) => void;
   onDelete: (docId: number) => void;
 };
 
@@ -22,7 +21,6 @@ export default function DashboardDocCard({
   onOpenInNewTab,
   onToggleStar,
   onDuplicate,
-  onMoveTo,
   onDelete,
 }: DashboardDocCardProps) {
   return (
@@ -90,17 +88,6 @@ export default function DashboardDocCard({
           }}
         >
           Duplicate
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className={styles.menuItem}
-          onClick={() => {
-            onCloseMenu();
-            onMoveTo(doc.id);
-          }}
-        >
-          Move to
         </button>
         <span className={styles.menuDivider} />
         <button

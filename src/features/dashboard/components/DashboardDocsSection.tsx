@@ -10,7 +10,6 @@ type DashboardDocsSectionProps = {
   onOpenInNewTab: (doc: DashboardDocItem) => void;
   onToggleStar: (docId: number) => void;
   onDuplicate: (docId: number) => void;
-  onMoveTo: (docId: number) => void;
   onDelete: (docId: number) => void;
 };
 
@@ -22,7 +21,6 @@ export default function DashboardDocsSection({
   onOpenInNewTab,
   onToggleStar,
   onDuplicate,
-  onMoveTo,
   onDelete,
 }: DashboardDocsSectionProps) {
   return (
@@ -41,7 +39,6 @@ export default function DashboardDocsSection({
               onOpenInNewTab={onOpenInNewTab}
               onToggleStar={onToggleStar}
               onDuplicate={onDuplicate}
-              onMoveTo={onMoveTo}
               onDelete={onDelete}
             />
           ))}

@@ -18,15 +18,6 @@ import styles from "../styles/dashboard.module.css";
 const DASHBOARD_ACTIVE_NAV_STORAGE_KEY = "dashboard_active_nav_v1";
 const DASHBOARD_ACTIVE_NAV_EVENT = "dashboard-active-nav-changed";
 
-const DOC_MOVE_TARGET_BY_INPUT = {
-  "all docs": "All Docs",
-  all: "All Docs",
-  tasks: "Tasks",
-  imagine: "Imagine",
-  shared: "Shared With Me",
-  "shared with me": "Shared With Me",
-} as const;
-
 const swalWithBootstrapButtons = Swal.mixin({
   customClass: {
     confirmButton: "btn btn-success",
@@ -214,42 +205,6 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     });
   }
 
-  function moveDoc(docId: number) {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const targetInput = window.prompt(
-      "Move to mana? Pilih: All Docs, Tasks, Imagine, Shared With Me",
-      "Tasks",
-    );
-
-    if (!targetInput) {
-      return;
-    }
-
-    const normalizedTargetInput = targetInput.trim().toLowerCase();
-    const nextLocation =
-      DOC_MOVE_TARGET_BY_INPUT[normalizedTargetInput as keyof typeof DOC_MOVE_TARGET_BY_INPUT];
-
-    if (!nextLocation) {
-      window.alert("Tujuan move tidak valid.");
-      return;
-    }
-
-    setDocsState((currentDocs) =>
-      currentDocs.map((doc) =>
-        doc.id === docId
-          ? {
-              ...doc,
-              location: nextLocation,
-              date: `Moved to ${nextLocation} just now`,
-            }
-          : doc,
-      ),
-    );
-  }
-
   function deleteDoc(docId: number) {
     swalWithBootstrapButtons
       .fire({
@@ -292,7 +247,6 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
           onOpenInNewTab={openDocInNewTab}
           onToggleStar={toggleDocStar}
           onDuplicate={duplicateDoc}
-          onMoveTo={moveDoc}
           onDelete={deleteDoc}
         />
       );
