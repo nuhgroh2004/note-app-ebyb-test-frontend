@@ -6,76 +6,115 @@ type HeroSectionProps = {
   heroReady: boolean;
 };
 
+const HERO_PILLS = ["Docs", "Tasks", "Calendar", "Whiteboards", "Daily Notes"];
+
 export default function HeroSection({ heroReady }: HeroSectionProps) {
   return (
     <section className="hero" id="hero">
-      <video className="hero-video" autoPlay muted loop playsInline>
-        <source
-          src="https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_25fps.mp4"
-          type="video/mp4"
-        />
-      </video>
-      <div className="hero-overlay" />
+      <div className="hero-noise" aria-hidden="true" />
+      <div className="shell hero-shell">
+        <div className="hero-copy">
+          <motion.p
+            className="hero-kicker"
+            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+            animate={
+              heroReady
+                ? { opacity: 1, y: 0, filter: "blur(0px)" }
+                : { opacity: 0, y: 20, filter: "blur(8px)" }
+            }
+            transition={{ duration: 0.9, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          >
+            NOTESPACE
+          </motion.p>
 
-      <div className="hero-content shell">
-        <div className="hero-title-wrap">
           <motion.h1
             className="hero-title"
-            initial={{ opacity: 0, y: 36, filter: "blur(14px)" }}
+            initial={{ opacity: 0, y: 28, filter: "blur(10px)" }}
             animate={
               heroReady
                 ? { opacity: 1, y: 0, filter: "blur(0px)" }
-                : { opacity: 0, y: 36, filter: "blur(14px)" }
+                : { opacity: 0, y: 28, filter: "blur(10px)" }
             }
-            transition={{ duration: 1.45, delay: 0.16, ease: [0.19, 1, 0.22, 1] }}
+            transition={{ duration: 1.1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            Notes App
+            Your space for <span className="hero-title-accent">notes, tasks,</span> and big ideas
           </motion.h1>
-          <motion.h1
-            className="hero-title"
-            initial={{ opacity: 0, y: 36, filter: "blur(14px)" }}
+
+          <motion.p
+            className="hero-sub"
+            initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
             animate={
               heroReady
                 ? { opacity: 1, y: 0, filter: "blur(0px)" }
-                : { opacity: 0, y: 36, filter: "blur(14px)" }
+                : { opacity: 0, y: 22, filter: "blur(8px)" }
             }
-            transition={{ duration: 1.45, delay: 0.48, ease: [0.19, 1, 0.22, 1] }}
+            transition={{ duration: 1, delay: 0.34, ease: [0.22, 1, 0.36, 1] }}
           >
-            Fullstack <span className="serif-accent">Landing</span>
-          </motion.h1>
+            Capture ideas fast, shape them into polished documents, and keep tasks
+            connected to the work that matters.
+          </motion.p>
+
+          <motion.div
+            className="hero-actions"
+            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+            animate={
+              heroReady
+                ? { opacity: 1, y: 0, filter: "blur(0px)" }
+                : { opacity: 0, y: 20, filter: "blur(8px)" }
+            }
+            transition={{ duration: 0.9, delay: 0.48, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <a href="/register" className="waitlist-btn solid">
+              Continue on web
+            </a>
+            <a href="/login" className="waitlist-btn outline">
+              Log in
+            </a>
+          </motion.div>
+
+          <motion.div
+            className="hero-pill-row"
+            initial={{ opacity: 0, y: 16 }}
+            animate={heroReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+            transition={{ duration: 0.75, delay: 0.62, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {HERO_PILLS.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </motion.div>
         </div>
 
-        <motion.p
-          className="hero-sub"
-          initial={{ opacity: 0, y: 26, filter: "blur(10px)" }}
-          animate={
-            heroReady
-              ? { opacity: 1, y: 0, filter: "blur(0px)" }
-              : { opacity: 0, y: 26, filter: "blur(10px)" }
-          }
-          transition={{ duration: 1.2, delay: 0.82, ease: [0.19, 1, 0.22, 1] }}
-        >
-          Aplikasi catatan dengan fitur register, login, CRUD notes, kalender
-          catatan, dan dashboard profile.
-        </motion.p>
-
         <motion.div
-          className="hero-cta"
-          initial={{ opacity: 0, y: 24, scale: 0.985, filter: "blur(10px)" }}
+          className="hero-visual"
+          initial={{ opacity: 0, y: 28, scale: 0.985, filter: "blur(10px)" }}
           animate={
             heroReady
               ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
-              : { opacity: 0, y: 24, scale: 0.985, filter: "blur(10px)" }
+              : { opacity: 0, y: 28, scale: 0.985, filter: "blur(10px)" }
           }
-          transition={{ duration: 1.24, delay: 1.06, ease: [0.19, 1, 0.22, 1] }}
+          transition={{ duration: 1.2, delay: 0.56, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p>
-            Fokus pada fitur inti tanpa tambahan yang di luar scope: autentikasi,
-            notes management, kalender, dan profil.
-          </p>
-          <a href="/register" className="waitlist-btn solid">
-            Register
-          </a>
+          <article className="hero-mock hero-mock-main">
+            <p className="hero-mock-label">Daily Notes</p>
+            <h3>Monday Focus</h3>
+            <ul>
+              <li>Review sprint goals</li>
+              <li>Draft team update</li>
+              <li>Capture next decisions</li>
+            </ul>
+          </article>
+
+          <article className="hero-mock hero-mock-side">
+            <p className="hero-mock-label">Tasks</p>
+            <h3>Inbox</h3>
+            <div className="mock-check">Sync design handoff</div>
+            <div className="mock-check">Prepare launch notes</div>
+          </article>
+
+          <article className="hero-mock hero-mock-mini">
+            <p className="hero-mock-label">Calendar</p>
+            <h3>20 Apr</h3>
+          </article>
         </motion.div>
       </div>
     </section>
