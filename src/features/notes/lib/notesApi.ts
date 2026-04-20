@@ -1,6 +1,7 @@
 import { readAuthToken } from "@/features/auth/lib/authSession";
 
 export type NoteEntryType = "note" | "document";
+export type NoteLocation = "All Docs" | "Tasks" | "Imagine" | "Shared With Me";
 
 export type NoteItem = {
   id: number;
@@ -12,7 +13,7 @@ export type NoteItem = {
   color: string | null;
   time: string | null;
   isStarred: boolean;
-  location: string;
+  location: NoteLocation;
   createdAt: string;
   updatedAt: string;
 };
@@ -55,7 +56,7 @@ type CreateNotePayload = {
   color?: string;
   time?: string;
   isStarred?: boolean;
-  location?: string;
+  location?: NoteLocation;
 };
 
 type UpdateNotePayload = Partial<CreateNotePayload>;

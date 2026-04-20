@@ -8,6 +8,7 @@ import {
   updateNote,
   type NoteEntryType,
 } from "@/features/notes/lib/notesApi";
+import { readAuthToken } from "@/features/auth/lib/authSession";
 import NotesEditorCanvas from "./NotesEditorCanvas";
 import NotesLeftPanel from "./NotesLeftPanel";
 import NotesRightPanel from "./NotesRightPanel";
@@ -1613,6 +1614,14 @@ export default function NotesWorkspace() {
     setIsLeftPanelOpen(false);
     setIsRightPanelOpen(false);
   }
+
+  useEffect(() => {
+    const token = readAuthToken();
+
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (resolvedNoteId) {

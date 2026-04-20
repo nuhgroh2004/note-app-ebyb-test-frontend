@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Manrope } from "next/font/google";
 import NotesWorkspace from "@/features/notes/components/NotesWorkspace";
 
@@ -9,7 +10,9 @@ const manrope = Manrope({
 export default function NotesPage() {
   return (
     <div className={manrope.className}>
-      <NotesWorkspace />
+      <Suspense fallback={null}>
+        <NotesWorkspace />
+      </Suspense>
     </div>
   );
 }

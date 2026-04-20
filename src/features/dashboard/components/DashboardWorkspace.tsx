@@ -133,10 +133,10 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
   const router = useRouter();
   const pathname = usePathname();
 
-  const storedActiveNavId = useSyncExternalStore(
+  const storedActiveNavId = useSyncExternalStore<DashboardNavKey>(
     subscribeActiveNav,
     getStoredActiveNavSnapshot,
-    () => "all-docs",
+    (): DashboardNavKey => "all-docs",
   );
   const activeNavId = fixedNavId ?? storedActiveNavId;
   const [userInitial, setUserInitial] = useState("M");
@@ -378,10 +378,13 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
       return <CalendarSection searchValue={searchValue} />;
     }
 
+    const sectionKey = activeNavId as keyof typeof sectionTitleByNav;
+    const sectionTitle = sectionTitleByNav[sectionKey] || "Workspace";
+
     return (
       <section className={styles.content}>
-        <h1 className={styles.pageTitle}>{sectionTitleByNav[activeNavId]}</h1>
-        <p className={styles.emptyState}>Fitur {sectionTitleByNav[activeNavId]} sedang disiapkan.</p>
+        <h1 className={styles.pageTitle}>{sectionTitle}</h1>
+        <p className={styles.emptyState}>Fitur {sectionTitle} sedang disiapkan.</p>
       </section>
     );
   }
