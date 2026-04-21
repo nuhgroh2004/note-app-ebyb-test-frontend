@@ -24,6 +24,10 @@ type AuthApiResponse = {
   errors?: AuthErrorItem[];
 };
 
+type GoogleLoginPayload = {
+  idToken: string;
+};
+
 function resolveErrorMessage(payload: AuthApiResponse, fallbackMessage: string) {
   if (payload.errors && payload.errors.length > 0) {
     const firstError = payload.errors[0];
@@ -41,8 +45,8 @@ function resolveErrorMessage(payload: AuthApiResponse, fallbackMessage: string) 
 }
 
 async function postAuthRequest(
-  endpoint: "login" | "register",
-  payload: LoginUiState | RegisterUiState
+  endpoint: "login" | "register" | "google",
+  payload: LoginUiState | RegisterUiState | GoogleLoginPayload
 ): Promise<AuthResult> {
   const response = await fetch(`/api/auth/${endpoint}`, {
     method: "POST",
@@ -68,4 +72,8 @@ export function loginWithApi(payload: LoginUiState) {
 
 export function registerWithApi(payload: RegisterUiState) {
   return postAuthRequest("register", payload);
+}
+
+export function loginWithGoogleApi(payload: GoogleLoginPayload) {
+  return postAuthRequest("google", payload);
 }

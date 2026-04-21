@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 const AUTH_PROXY_TIMEOUT_MS = 10_000;
 
-type AuthEndpoint = "login" | "register";
+type AuthEndpoint = "login" | "register" | "google";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");

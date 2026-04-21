@@ -365,37 +365,57 @@
   font-size: 0.9rem;
 }
 
-.socialStack {
+/* ── Google Identity renderButton wrapper ── */
+.googleButtonWrap {
+  position: relative;
   width: min(332px, 100%);
-  display: grid;
-  gap: 0.52rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
 }
 
-.socialButton {
-  min-height: 41px;
+/* Stretch the Google-rendered iframe/div to fill container */
+.googleButtonInner {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.googleButtonInner > div,
+.googleButtonInner iframe {
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+/* Loading overlay shown while API call is in progress */
+.googleButtonOverlay {
+  position: absolute;
+  inset: 0;
   border-radius: 10px;
-  border: 1px solid rgba(145, 173, 196, 0.45);
-  background: rgba(232, 244, 255, 0.58);
-  color: #233544;
-  font: inherit;
-  font-weight: 610;
-  cursor: pointer;
-  display: inline-flex;
+  background: rgba(232, 244, 255, 0.88);
+  backdrop-filter: blur(2px);
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #334250;
+  font-weight: 500;
 }
 
-.socialButton:hover {
-  transform: translateY(-1px);
-  border-color: rgba(101, 147, 178, 0.7);
+.googleSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(100, 149, 189, 0.35);
+  border-top-color: #4a90d9;
+  border-radius: 50%;
+  animation: googleSpin 0.7s linear infinite;
+  flex-shrink: 0;
 }
 
-.socialLogo {
-  width: 20px;
-  height: 20px;
-  display: block;
+@keyframes googleSpin {
+  to { transform: rotate(360deg); }
 }
 
 .statusInfo {
