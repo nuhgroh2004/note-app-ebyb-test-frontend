@@ -89,7 +89,7 @@ export default function DashboardSidebar({
 
       <div className={styles.newDocumentWrap}>
         <Link
-          href="/notes"
+          href="/notes?source=dashboard&entry=document"
           className={styles.newDocumentButton}
           onClick={() => setIsHeaderMenuOpen(false)}
         >

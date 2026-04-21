@@ -535,10 +535,20 @@ export default function NotesWorkspace() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryNoteId = useMemo(() => parseNoteId(searchParams.get("noteId")), [searchParams]);
-  const queryEntryType = useMemo<NoteEntryType>(
-    () => (searchParams.get("entry") === "document" ? "document" : "note"),
-    [searchParams],
-  );
+  const queryEntryType = useMemo<NoteEntryType>(() => {
+    const source = searchParams.get("source");
+    const entry = searchParams.get("entry");
+
+    if (entry === "note") {
+      return "note";
+    }
+
+    if (entry === "document" || source === "dashboard") {
+      return "document";
+    }
+
+    return "document";
+  }, [searchParams]);
   const initialPageId = useMemo(() => createPageId(), []);
 
   const [activeLeftToolId, setActiveLeftToolId] = useState(NOTES_LEFT_TOOLS[0].id);
