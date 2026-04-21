@@ -37,7 +37,7 @@ export default function NotesLeftPanel({
 
       <div className={styles.tocSection}>
         <p className={styles.tocTitle}>Table of Contents</p>
-        <p className={styles.tocHint}>Use titles, pages, or cards to create a table of contents.</p>
+        <p className={styles.tocHint}>Fitur Tasks sedang disiapkan. DEVELOPER SEDANG BERMALAS MASLASAN HEHE</p>
       </div>
     </aside>
   );

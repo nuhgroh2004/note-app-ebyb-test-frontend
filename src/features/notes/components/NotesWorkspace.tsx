@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Swal from "sweetalert2";
 import {
   createNote,
   getNoteById,
@@ -47,6 +48,14 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const NOTES_CALENDAR_DRAFT_STORAGE_KEY = "notes_calendar_document_draft";
 const NOTE_CONTENT_VERSION = 1;
 const NOTE_DEFAULT_LOCATION = "All Docs";
+
+const swalWithBootstrapButtons = Swal.mixin({
+  customClass: {
+    confirmButton: "btn btn-success",
+    cancelButton: "btn btn-danger",
+  },
+  buttonsStyling: false,
+});
 
 type ParsedNoteContent = {
   pageIds: string[];
@@ -585,6 +594,10 @@ export default function NotesWorkspace() {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const hasAppliedCalendarDraftRef = useRef(false);
+  const isNoteDirtyRef = useRef(isNoteDirty);
+  const isSavingNoteRef = useRef(isSavingNote);
+  const saveNoteRef = useRef<() => Promise<boolean>>(async () => false);
+  const shouldSkipBackGuardRef = useRef(false);
 
   const pageTitle = useMemo(() => {
     const trimmed = title.trim();
@@ -617,12 +630,12 @@ export default function NotesWorkspace() {
     [pathname, router, searchParams],
   );
 
-  const saveNote = useCallback(async () => {
+  const saveNote = useCallback(async (): Promise<boolean> => {
     const trimmedTitle = title.trim();
 
     if (trimmedTitle.length < 3) {
       setSaveErrorMessage("Judul minimal 3 karakter.");
-      return;
+      return false;
     }
 
     const payloadContent = buildNoteContentPayload({
@@ -636,7 +649,7 @@ export default function NotesWorkspace() {
 
     if (payloadContent.length > 20000) {
       setSaveErrorMessage("Konten terlalu panjang. Maksimal 20000 karakter.");
-      return;
+      return false;
     }
 
     setIsSavingNote(true);
@@ -666,9 +679,11 @@ export default function NotesWorkspace() {
       }
 
       setIsNoteDirty(false);
+      return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menyimpan catatan.";
       setSaveErrorMessage(message);
+      return false;
     } finally {
       setIsSavingNote(false);
     }
@@ -684,6 +699,18 @@ export default function NotesWorkspace() {
     syncNoteIdToUrl,
     title,
   ]);
+
+  useEffect(() => {
+    isNoteDirtyRef.current = isNoteDirty;
+  }, [isNoteDirty]);
+
+  useEffect(() => {
+    isSavingNoteRef.current = isSavingNote;
+  }, [isSavingNote]);
+
+  useEffect(() => {
+    saveNoteRef.current = saveNote;
+  }, [saveNote]);
 
   const closeAttachmentMenus = useCallback(() => {
     pageIds.forEach((pageId) => {
@@ -1632,6 +1659,83 @@ export default function NotesWorkspace() {
       router.replace("/login");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const pushBackGuard = () => {
+      window.history.pushState({ notesBackGuard: true }, "", window.location.href);
+    };
+
+    pushBackGuard();
+
+    const handlePopState = async () => {
+      if (shouldSkipBackGuardRef.current) {
+        shouldSkipBackGuardRef.current = false;
+        return;
+      }
+
+      if (isSavingNoteRef.current) {
+        pushBackGuard();
+        return;
+      }
+
+      if (!isNoteDirtyRef.current) {
+        shouldSkipBackGuardRef.current = true;
+        window.history.back();
+        return;
+      }
+
+      const result = await swalWithBootstrapButtons.fire({
+        title: "Simpan perubahan?",
+        text: "Perubahan belum disimpan. Simpan sebelum keluar halaman?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, simpan",
+        cancelButtonText: "Tidak, lanjut keluar",
+        reverseButtons: true,
+      });
+
+      if (result.isConfirmed) {
+        const saved = await saveNoteRef.current();
+
+        if (!saved) {
+          await swalWithBootstrapButtons.fire({
+            title: "Gagal menyimpan",
+            text: "Periksa kembali judul/konten lalu coba simpan lagi.",
+            icon: "error",
+          });
+          pushBackGuard();
+          return;
+        }
+
+        await swalWithBootstrapButtons.fire({
+          title: "Tersimpan!",
+          text: "Dokumen berhasil disimpan.",
+          icon: "success",
+        });
+
+        shouldSkipBackGuardRef.current = true;
+        window.history.back();
+        return;
+      }
+
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        shouldSkipBackGuardRef.current = true;
+        window.history.back();
+        return;
+      }
+
+      pushBackGuard();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     if (resolvedNoteId) {

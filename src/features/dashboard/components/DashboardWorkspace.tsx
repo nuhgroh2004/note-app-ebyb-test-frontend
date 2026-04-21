@@ -384,7 +384,7 @@ export default function DashboardWorkspace({ fixedNavId }: DashboardWorkspacePro
     return (
       <section className={styles.content}>
         <h1 className={styles.pageTitle}>{sectionTitle}</h1>
-        <p className={styles.emptyState}>Fitur {sectionTitle} sedang disiapkan.</p>
+        <p className={styles.emptyState}>Fitur {sectionTitle} sedang disiapkan. DEVELOPER SEDANG BERMALAS MASLASAN HEHE</p>
       </section>
     );
   }

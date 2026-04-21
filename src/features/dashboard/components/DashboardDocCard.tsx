@@ -24,7 +24,14 @@ export default function DashboardDocCard({
   onDelete,
 }: DashboardDocCardProps) {
   return (
-    <article className={styles.docCard} onClick={onCloseMenu}>
+    <article
+      className={styles.docCard}
+      onClick={onCloseMenu}
+      onDoubleClick={() => {
+        onCloseMenu();
+        onOpenInNewTab(doc);
+      }}
+    >
       <div className={styles.docCardBody} />
 
       <div className={styles.docCardFooter}>
@@ -46,6 +53,9 @@ export default function DashboardDocCard({
           event.stopPropagation();
           onToggleMenu(doc.id);
         }}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+        }}
       >
         <DashboardIcon name="more-vertical" className={styles.navIcon} />
       </button>
@@ -54,6 +64,7 @@ export default function DashboardDocCard({
         role="menu"
         className={`${styles.contextMenu} ${isMenuOpen ? styles.contextMenuShow : ""}`}
         onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
