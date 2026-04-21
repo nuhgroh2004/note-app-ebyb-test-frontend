@@ -22,8 +22,7 @@ function resolveBackendApiUrl(request: Request) {
     throw new Error("BACKEND_API_URL is required for non-local environments");
   }
 
-  const fallbackPort = requestUrl.port === "4000" ? "3000" : "4000";
-  return `${requestUrl.protocol}//${requestUrl.hostname}:${fallbackPort}`;
+  return `${requestUrl.protocol}//${requestUrl.hostname}:8080`;
 }
 
 function parseJsonText(value: string): unknown {
@@ -53,7 +52,7 @@ export async function proxyBackendRequest({
     return NextResponse.json(
       {
         message:
-          "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:4000",
+          "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:8080",
       },
       { status: 500 },
     );
