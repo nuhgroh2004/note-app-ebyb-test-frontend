@@ -12,8 +12,14 @@ function resolveBackendApiUrl(request: Request) {
   const configuredUrl = process.env.BACKEND_API_URL?.trim();
 
   if (configuredUrl) {
-    const parsed = new URL(configuredUrl);
-    return trimTrailingSlash(parsed.origin);
+    try {
+      const parsed = new URL(configuredUrl);
+      return trimTrailingSlash(parsed.origin);
+    } catch {
+      throw new Error(
+        "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:8080"
+      );
+    }
   }
 
   const requestUrl = new URL(request.url);
@@ -21,7 +27,9 @@ function resolveBackendApiUrl(request: Request) {
     requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
 
   if (!isLocalRequest) {
-    throw new Error("BACKEND_API_URL is required for non-local environments");
+    throw new Error(
+      "BACKEND_API_URL belum dikonfigurasi. Silakan atur di environment variable (Railway Dashboard)."
+    );
   }
 
   return `${requestUrl.protocol}//${requestUrl.hostname}:8080`;
@@ -48,11 +56,10 @@ export async function proxyAuthRequest(request: Request, endpoint: AuthEndpoint)
 
   try {
     backendApiUrl = resolveBackendApiUrl(request);
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       {
-        message:
-          "BACKEND_API_URL tidak valid. Gunakan URL absolut backend, contoh: http://localhost:8080",
+        message: error instanceof Error ? error.message : "Konfigurasi backend tidak tersedia",
       },
       { status: 500 }
     );
