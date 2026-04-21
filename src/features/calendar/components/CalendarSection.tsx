@@ -77,6 +77,8 @@ const swalWithBootstrapButtons = Swal.mixin({
   buttonsStyling: false,
 });
 
+const CALENDAR_FETCH_PAGE_LIMIT = 100;
+
 function toDateNumberString(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -220,20 +222,30 @@ export default function CalendarSection({ searchValue }: CalendarSectionProps) {
       const { startDate, endDate } = getMonthDateRange(calendarYear, calendarMonthIndex);
 
       try {
-        const result = await listNotes({
-          page: 1,
-          limit: 500,
-          startDate,
-          endDate,
-          search: normalizedSearch || undefined,
-          sort: "noteDateAsc",
-        });
+        const monthItems: NoteItem[] = [];
+        let page = 1;
+        let totalPages = 1;
+
+        do {
+          const result = await listNotes({
+            page,
+            limit: CALENDAR_FETCH_PAGE_LIMIT,
+            startDate,
+            endDate,
+            search: normalizedSearch || undefined,
+            sort: "noteDateAsc",
+          });
+
+          monthItems.push(...result.items);
+          totalPages = Math.max(1, result.pagination.totalPages || 1);
+          page += 1;
+        } while (page <= totalPages && page <= 100);
 
         if (cancelled) {
           return;
         }
 
-        setEntriesByDate(buildEntriesByDate(result.items));
+        setEntriesByDate(buildEntriesByDate(monthItems));
       } catch (error) {
         if (cancelled) {
           return;
