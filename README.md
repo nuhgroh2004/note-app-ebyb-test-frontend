@@ -51,7 +51,7 @@ npm install
 Buat file .env.local di root frontend:
 ```env
 BACKEND_API_URL=http://localhost:8080
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=682901587483-492tqbud3m76gr868maeean7o46sial5.apps.googleusercontent.com
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ```
 
 ### Jalankan development
