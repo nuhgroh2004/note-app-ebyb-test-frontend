@@ -1,36 +1,80 @@
-# Frontend Calendar Module
+﻿# Frontend Calendar Module
 
 ## Tujuan
-Menyediakan halaman Calendar sebagai modul frontend terpisah yang tetap dirender di route /dashboard.
+Calendar menyediakan tampilan bulanan yang terhubung ke data notes backend untuk mengelola note/document per tanggal.
 
-## Cakupan Fitur
-- Tampilan kalender bulanan dengan navigasi bulan.
-- Tambah item per tanggal dengan dua tipe: catatan dan dokumen.
-- Edit catatan langsung dari panel Calendar.
-- Hapus item catatan/dokumen langsung dari panel Calendar.
-- Tipe dokumen memiliki tampilan khusus pada kotak kalender.
-- Saat dokumen dibuat, pengguna langsung diarahkan ke /notes.
-- Data kalender tersinkron ke backend melalui API notes.
-- Konfirmasi hapus item menggunakan SweetAlert2.
-- Mobile: panel item tampil sebagai sidebar kanan, bisa ditutup dengan klik di luar panel.
+## Teknologi dan Dependensi
+- React hooks + useMemo
+- SweetAlert2 untuk konfirmasi delete
+- Integrasi API notes (list/create/update/delete)
 
-## Struktur
-- components/CalendarGrid.tsx
-- components/CalendarSection.tsx
-- lib/calendarData.ts
-- lib/calendarUtils.ts
-- styles/calendar.module.css
+File utama:
+- src/features/calendar/components/CalendarSection.tsx
+- src/features/calendar/components/CalendarGrid.tsx
+- src/features/calendar/lib/calendarData.ts
+- src/features/calendar/lib/calendarUtils.ts
 
-## Integrasi Dengan Dashboard
-- Route tetap: /dashboard
-- Sidebar nav dashboard mengaktifkan tampilan Calendar saat menu calendar dipilih.
-- Menu aktif sidebar disimpan agar state tetap setelah refresh.
+## Lokasi Implementasi
+- Ditampilkan melalui DashboardWorkspace (nav Calendar)
+- Halaman dedicated: /calendar -> src/app/calendar/page.tsx
 
-## Integrasi Dengan Notes
-- Draft dokumen calendar dikirim via sessionStorage key notes_calendar_document_draft.
-- Redirect dokumen: /notes?source=calendar&entry=document
+## Fitur
+- Navigasi bulan
+- Load data notes per rentang bulan (startDate/endDate)
+- Search item pada bulan aktif
+- Tambah note
+- Edit note
+- Hapus note/document
+- Buat document lalu redirect ke /notes dengan draft context
+- Dukungan panel mobile drawer
 
-## Integrasi Backend
-- Menggunakan endpoint notes backend untuk CRUD item calendar.
-- Pengambilan data bulanan memakai filter startDate/endDate.
-- Fetch dilakukan dengan pagination limit 100 per halaman agar sesuai validasi backend.
+## Contoh Request Data Bulanan
+```ts
+const result = await listNotes({
+  page,
+  limit: 100,
+  startDate,
+  endDate,
+  search: normalizedSearch || undefined,
+  sort: 'noteDateAsc',
+});
+```
+
+## Potongan Kode Penting
+### 1) Loop pagination bulanan
+```ts
+do {
+  const result = await listNotes({ page, limit: 100, startDate, endDate });
+  monthItems.push(...result.items);
+  totalPages = Math.max(1, result.pagination.totalPages || 1);
+  page += 1;
+} while (page <= totalPages && page <= 100);
+```
+
+### 2) Save document lalu redirect ke notes
+```ts
+const createdNote = await createNote(payload);
+if (createdNote.entryType === 'document') {
+  saveDocumentDraftToSession(createdEntry);
+  router.push(`/notes?source=calendar&entry=document&noteId=${createdEntry.id}`);
+}
+```
+
+### 3) Konfirmasi delete
+```ts
+const confirmation = await swalWithBootstrapButtons.fire({
+  title: 'Are you sure?',
+  showCancelButton: true,
+});
+
+if (confirmation.isConfirmed) {
+  await deleteNote(entryId);
+}
+```
+
+## Integrasi dengan Notes
+- Session draft key: notes_calendar_document_draft
+- Query redirect: source=calendar, entry=document, noteId=<id>
+
+## Integrasi dengan Backend
+Semua CRUD item kalender menggunakan endpoint notes backend melalui proxy frontend.

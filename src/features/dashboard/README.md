@@ -1,31 +1,79 @@
-# Frontend Dashboard Module
+﻿# Frontend Dashboard Module
 
 ## Tujuan
-Menyediakan halaman dashboard frontend dengan tampilan bergaya Craft docs, dengan struktur komponen modular.
+Dashboard adalah workspace utama setelah login untuk melihat dokumen, melakukan pencarian, membuka dokumen, duplicate, star/unstar, delete, dan berpindah ke mode Calendar.
 
-## Cakupan Fitur
-- Sidebar statis (fixed) tanpa scroll.
-- Topbar dengan search bar yang lebih besar dan border tegas.
-- Satu ikon notifikasi (bell) pada sisi kanan topbar.
-- Grid dokumen dengan context menu per kartu.
-- Efek bayangan border pada area body kartu dokumen.
-- Integrasi menu Calendar melalui modul terpisah di fitur calendar.
+## Teknologi dan Dependensi
+- React hooks + useSyncExternalStore
+- next/navigation
+- SweetAlert2 (konfirmasi hapus)
+- Integrasi ke notesApi
 
-## Struktur
-- components/dashboardData.ts
-- components/DashboardIcons.tsx
-- components/DashboardSidebar.tsx
-- components/DashboardTopBar.tsx
-- components/DashboardDocCard.tsx
-- components/DashboardDocsSection.tsx
-- components/DashboardWorkspace.tsx
-- styles/dashboard.module.css
+File utama:
+- src/features/dashboard/components/DashboardWorkspace.tsx
+- src/features/dashboard/components/DashboardSidebar.tsx
+- src/features/dashboard/components/DashboardDocsSection.tsx
+- src/features/dashboard/components/DashboardDocCard.tsx
+- src/features/dashboard/components/dashboardData.ts
 
-## Integrasi Route
-- Route dashboard: /dashboard
-- Entry file route: src/app/dashboard/page.tsx
+## Lokasi Implementasi
+### Halaman
+- /dashboard -> src/app/dashboard/page.tsx
+- /calendar -> src/app/calendar/page.tsx (menggunakan DashboardWorkspace fixedNavId=calendar)
 
-## Catatan Implementasi
-- Data dokumen masih static untuk kebutuhan tampilan frontend.
-- Search bekerja secara client-side pada daftar dokumen static.
-- State menu sidebar dashboard disimpan pada localStorage key dashboard_active_nav_v1.
+## Fitur yang Aktif
+- All Docs: fetch dokumen dari backend (entryType=document)
+- Search dokumen (dikirim sebagai query search ke backend)
+- Open doc in new tab
+- Toggle star
+- Duplicate dokumen
+- Delete dokumen
+- Navigasi sidebar tersimpan di localStorage
+
+## Fitur Placeholder
+Section berikut sudah ada UI tetapi belum ada implementasi bisnis penuh:
+- Tasks
+- Imagine
+- Shared With Me
+
+## Contoh Alur Data Dokumen
+```ts
+const result = await listNotes({
+  page: 1,
+  limit: 100,
+  entryType: 'document',
+  search: searchValue.trim() || undefined,
+  sort: 'updatedAtDesc',
+});
+
+setDocs(result.items.map(mapNoteToDashboardDocItem));
+```
+
+## Potongan Kode Penting
+### 1) Persist menu aktif di localStorage
+```ts
+window.localStorage.setItem('dashboard_active_nav_v1', nextNav);
+window.dispatchEvent(new Event('dashboard-active-nav-changed'));
+```
+
+### 2) Duplicate dokumen
+```ts
+const sourceNote = await getNoteById(docId);
+await createNote({
+  title: `${sourceNote.title} Copy`,
+  content: sourceNote.content,
+  noteDate: sourceNote.noteDate.slice(0, 10),
+  entryType: 'document',
+});
+```
+
+### 3) Redirect dari dashboard ke calendar
+```ts
+if (pathname === '/dashboard' && nextNav === 'calendar') {
+  router.push('/calendar');
+}
+```
+
+## Integrasi Modul
+- Menggunakan CalendarSection saat nav active = calendar
+- Menggunakan Notes API untuk CRUD dokumen dari dashboard

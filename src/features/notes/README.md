@@ -1,46 +1,121 @@
-# Frontend Notes Module
+﻿# Frontend Notes Module
 
 ## Tujuan
-Menyediakan halaman editor notes frontend bergaya Craft dengan layout tiga panel yang responsif.
+Modul Notes menyediakan editor dokumen/catatan dengan kemampuan create, edit, load by noteId, format teks, insert table, attachment, image, code block, dan penyimpanan ke backend.
 
-## Cakupan Fitur
-- Route notes baru pada /notes.
-- Dashboard sidebar action New Document diarahkan ke /notes.
-- Draft dokumen dari menu Calendar dashboard dapat langsung diprefill ke canvas notes.
-- Layout editor lengkap: left panel, topbar editor, canvas dokumen, dan right panel insert.
-- Interaksi frontend:
-  - Input judul halaman realtime.
-  - Switch tab kanan (Insert, Format, Style, Info).
-  - Insert item block ke canvas.
-  - Insert line dan page break.
-  - Preview hover + insert table berdasarkan jumlah row/column.
-- Responsif:
-  - Desktop: 3 panel penuh.
-  - Tablet: right panel jadi drawer.
-  - Mobile: left panel dan right panel jadi drawer dengan backdrop.
+## Teknologi dan Dependensi
+- React hooks + Next App Router search params
+- SweetAlert2 untuk konfirmasi save saat user menekan back
+- API client notes (fetch + bearer token)
+- Content disimpan sebagai JSON string terstruktur
 
-## Struktur
-- components/notesEditorData.ts
-- components/NotesIcon.tsx
-- components/NotesLeftPanel.tsx
-- components/NotesTopBar.tsx
-- components/NotesEditorCanvas.tsx
-- components/NotesRightPanel.tsx
-- components/NotesWorkspace.tsx
-- lib/notesEditorTypes.ts
-- styles/notes.module.css
+File utama:
+- src/features/notes/components/NotesWorkspace.tsx
+- src/features/notes/components/NotesEditorCanvas.tsx
+- src/features/notes/components/NotesRightPanel.tsx
+- src/features/notes/components/NotesTopBar.tsx
+- src/features/notes/lib/notesApi.ts
 
-## Integrasi Route
-- Route: src/app/notes/page.tsx
-- Entry component: src/features/notes/components/NotesWorkspace.tsx
+## Lokasi Implementasi
+### Halaman
+- /notes -> src/app/notes/page.tsx
 
-## Integrasi Draft Calendar
-- Query param yang dikenali: source=calendar, source=dashboard, dan entry=document.
-- Session storage key: notes_calendar_document_draft.
-- Saat draft tersedia, judul halaman notes otomatis terisi, metadata asal calendar ditambahkan ke canvas, dan konten deskripsi draft diisikan sebagai paragraf awal.
+### API frontend
+- GET /api/notes
+- POST /api/notes
+- GET /api/notes/:id
+- PUT /api/notes/:id
+- DELETE /api/notes/:id
 
-## Perilaku Entry Type
-- Jika halaman notes dibuka dengan source=dashboard, mode entry default adalah document.
-- Jika query entry=document dikirim, mode entry juga dipaksa ke document.
-- Jika query entry=note dikirim, mode entry dipaksa ke note.
-- Jika halaman notes dibuka tanpa query entry, mode default adalah document.
+## Kemampuan User
+- Membuat note/document baru
+- Membuka note dari query noteId
+- Menyimpan perubahan manual (toolbar save atau Ctrl/Cmd+S)
+- Konfirmasi simpan saat back jika ada perubahan belum tersimpan
+- Menambah page break
+- Menambah table (baris/kolom dinamis)
+- Menambah block: heading, checklist, card, code, line
+- Upload attachment/image ke editor (blob URL lokal browser)
+
+## Contoh Penggunaan API Client
+```ts
+const created = await createNote({
+  title: trimmedTitle,
+  content: payloadContent,
+  noteDate: getTodayNoteDate(),
+  entryType: noteEntryType,
+  location: 'All Docs',
+});
+```
+
+## Bentuk Data Sukses (Create)
+```json
+{
+  "message": "Note created",
+  "data": {
+    "id": 101,
+    "title": "Project Plan",
+    "content": "{\"version\":1,...}",
+    "noteDate": "2026-04-21T00:00:00.000Z",
+    "entryType": "document",
+    "label": "Dokumen",
+    "color": "blue",
+    "time": "",
+    "isStarred": false,
+    "location": "All Docs",
+    "createdAt": "2026-04-21T10:00:00.000Z",
+    "updatedAt": "2026-04-21T10:00:00.000Z"
+  }
+}
+```
+
+## Potongan Kode Penting
+### 1) Save note (create/update)
+```ts
+if (resolvedNoteId) {
+  await updateNote(resolvedNoteId, {
+    title: trimmedTitle,
+    content: payloadContent,
+  });
+} else {
+  const created = await createNote({
+    title: trimmedTitle,
+    content: payloadContent,
+    noteDate: getTodayNoteDate(),
+    entryType: noteEntryType,
+    location: 'All Docs',
+  });
+  syncNoteIdToUrl(created.id);
+}
+```
+
+### 2) Guard saat user menekan back
+```ts
+if (isNoteDirtyRef.current) {
+  const result = await swalWithBootstrapButtons.fire({
+    title: 'Simpan perubahan?',
+    showCancelButton: true,
+  });
+
+  if (result.isConfirmed) {
+    await saveNoteRef.current();
+  }
+}
+```
+
+### 3) Request API notes dengan bearer token
+```ts
+const response = await fetch(endpoint, {
+  method: options.method,
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  },
+  body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+});
+```
+
+## Integrasi ke Modul Lain
+- Dari dashboard: /notes?source=dashboard&noteId=...
+- Dari calendar untuk dokumen: /notes?source=calendar&entry=document&noteId=...
+- Draft kalender disimpan sementara di sessionStorage key notes_calendar_document_draft
